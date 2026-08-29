@@ -34,7 +34,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Data Awal Lowongan
+        // Data Awal Cadangan
         const defaultJobs = [
             { 
                 id: 1, 
@@ -226,7 +226,7 @@
                             Pesan Pembuatan CV Sekarang
                         </button>
                     </div>
-                    <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/10 max-w-sm w-full">
+                    <div className="bg-white/15 backdrop-blur-md p-6 rounded-2xl border border-white/15 max-w-sm w-full">
                         <h3 className="font-bold text-lg mb-3">Paket Unggulan</h3>
                         <ul className="space-y-2 text-sm text-slate-200 mb-6">
                             <li>✓ Format ATS Teruji & Lolos HR</li>
@@ -351,10 +351,9 @@
 
             if (!isOpen) return null;
 
-            const handleSubmit = (e) => {
+            const handleSubmit = async (e) => {
                 e.preventDefault();
                 const newJob = { 
-                    id: Date.now(), 
                     title, 
                     company, 
                     location: location||'Remote', 
@@ -370,7 +369,7 @@
                     applyTarget,
                     applicantsCount: 0
                 };
-                onAddJob(newJob);
+                await onAddJob(newJob);
                 
                 const adminWa = "085179905019";
                 const waMessage = encodeURIComponent("Halo Admin, saya ingin memasang lowongan kerja di website Pintukarier.id");
@@ -476,7 +475,7 @@
 
             return (
                 <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-sm w-full p-6 shadow-2xl relative">
+                    <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 font-bold text-xl">✕</button>
                         <h2 className="text-xl font-bold text-navy mb-4">Login Superadmin</h2>
                         <form onSubmit={handleLogin} className="space-y-4 text-sm">
@@ -493,12 +492,24 @@
             const [activeTab, setActiveTab] = useState('stats');
             const [editingJob, setEditingJob] = useState(null);
 
-            const updateJobStatus = (id, newStatus) => {
+            const updateJobStatus = async (id, newStatus) => {
                 setJobs(jobs.map(j => j.id === id ? {...j, status: newStatus} : j));
+                try {
+                    await db.from('jobs').update({ status: newStatus }).eq('id', id);
+                } catch (err) {
+                    console.error("Gagal update status di Supabase", err);
+                }
             };
 
-            const deleteJob = (id) => {
-                if(confirm("Hapus lowongan ini dari sistem?")) setJobs(jobs.filter(j => j.id !== id));
+            const deleteJob = async (id) => {
+                if(confirm("Hapus lowongan ini dari sistem?")) {
+                    setJobs(jobs.filter(j => j.id !== id));
+                    try {
+                        await db.from('jobs').delete().eq('id', id);
+                    } catch (err) {
+                        console.error("Gagal menghapus dari Supabase", err);
+                    }
+                }
             };
 
             const updateCVStatus = (id, newStatus) => {
@@ -641,7 +652,14 @@
                         <EditJobModal 
                             job={editingJob} 
                             onClose={() => setEditingJob(null)} 
-                            onSave={(updated) => setJobs(jobs.map(j => j.id === updated.id ? updated : j))} 
+                            onSave={async (updated) => {
+                                setJobs(jobs.map(j => j.id === updated.id ? updated : j));
+                                try {
+                                    await db.from('jobs').update(updated).eq('id', updated.id);
+                                } catch (err) {
+                                    console.error("Gagal update job di Supabase", err);
+                                }
+                            }} 
                         />
                     )}
                 </div>
@@ -650,18 +668,33 @@
 
         // --- APLIKASI UTAMA ---
         const App = () => {
-            const [jobs, setJobs] = useState(() => {
-                const saved = localStorage.getItem('pintukarier_jobs_v3');
-                return saved ? JSON.parse(saved) : defaultJobs;
-            });
+            const [jobs, setJobs] = useState(defaultJobs);
             const [cvOrders, setCvOrders] = useState(() => {
                 const saved = localStorage.getItem('pintukarier_cv_v3');
                 return saved ? JSON.parse(saved) : defaultCVOrders;
             });
 
+            // Ambil data langsung dari Supabase saat aplikasi dimuat
             useEffect(() => {
-                localStorage.setItem('pintukarier_jobs_v3', JSON.stringify(jobs));
-            }, [jobs]);
+                async function fetchJobsFromSupabase() {
+                    try {
+                        const { data, error } = await db.from('jobs').select('*');
+                        if (!error && data && data.length > 0) {
+                            setJobs(data);
+                        } else if (!error && (!data || data.length === 0)) {
+                            // Jika tabel kosong di Supabase, masukkan data default
+                            for (let job of defaultJobs) {
+                                await db.from('jobs').insert([job]);
+                            }
+                            const { data: freshData } = await db.from('jobs').select('*');
+                            if (freshData && freshData.length > 0) setJobs(freshData);
+                        }
+                    } catch (err) {
+                        console.error("Gagal terhubung ke Supabase:", err);
+                    }
+                }
+                fetchJobsFromSupabase();
+            }, []);
 
             useEffect(() => {
                 localStorage.setItem('pintukarier_cv_v3', JSON.stringify(cvOrders));
@@ -675,8 +708,30 @@
             const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
             const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
-            const handleApplyTrack = (jobId) => {
-                setJobs(jobs.map(j => j.id === jobId ? { ...j, applicantsCount: (j.applicantsCount || 0) + 1 } : j));
+            const handleApplyTrack = async (jobId) => {
+                const targetJob = jobs.find(j => j.id === jobId);
+                const newCount = (targetJob?.applicantsCount || 0) + 1;
+                
+                setJobs(jobs.map(j => j.id === jobId ? { ...j, applicantsCount: newCount } : j));
+                try {
+                    await db.from('jobs').update({ applicantsCount: newCount }).eq('id', jobId);
+                } catch (err) {
+                    console.error("Gagal update pelamar:", err);
+                }
+            };
+
+            const handleAddJob = async (newJobData) => {
+                try {
+                    const { data, error } = await db.from('jobs').insert([newJobData]).select();
+                    if (!error && data && data.length > 0) {
+                        setJobs([data[0], ...jobs]);
+                    } else {
+                        setJobs([newJobData, ...jobs]);
+                    }
+                } catch (err) {
+                    console.error("Gagal menyimpan ke Supabase:", err);
+                    setJobs([newJobData, ...jobs]);
+                }
             };
 
             if (isAdminLoggedIn) {
@@ -706,7 +761,7 @@
                     <Footer />
 
                     <JobDetailModal job={selectedJob} onClose={() => setSelectedJob(null)} onApplyTrack={handleApplyTrack} />
-                    <PostJobModal isOpen={isPostJobOpen} onClose={() => setIsPostJobOpen(false)} onAddJob={(newJob) => setJobs([newJob, ...jobs])} />
+                    <PostJobModal isOpen={isPostJobOpen} onClose={() => setIsPostJobOpen(false)} onAddJob={handleAddJob} />
                     <OrderCVModal isOpen={isOrderCVOpen} onClose={() => setIsOrderCVOpen(false)} onSubmitOrder={(newOrder) => setCvOrders([newOrder, ...cvOrders])} />
                     <AdminLoginModal isOpen={isAdminLoginOpen} onClose={() => setIsAdminLoginOpen(false)} onLoginSuccess={() => setIsAdminLoggedIn(true)} />
                 </div>
@@ -715,6 +770,16 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
+    </script>
+
+    <!-- SCRIPT KONEKSI SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const { createClient } = supabase;
+        const supabaseUrl = 'https://jtccysnofujwgframdzm.supabase.co';
+        const supabaseKey = 'sb_publishable_EoPED6D6iAdh0LkmJQ2UTG_6VByw9xT';
+        const db = createClient(supabaseUrl, supabaseKey);
+        console.log("Koneksi Supabase berhasil!", db);
     </script>
 </body>
 </html>
