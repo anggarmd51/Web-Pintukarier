@@ -168,13 +168,14 @@
         );
 
         const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag }) => {
-            const filteredJobs = jobs.filter(job => {
-                if(job.status !== "Aktif") return false;
-                const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || job.company.toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesTag = selectedTag ? job.category === selectedTag || job.location.includes(selectedTag) : true;
-                return matchesSearch && matchesTag;
-            }).sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-
+const filteredJobs = jobs.filter(job => {
+    const search = (searchTerm || '').toLowerCase();
+    const matchesSearch = 
+      (job.title && job.title.toLowerCase().includes(search)) ||
+      (job.company && job.company.toLowerCase().includes(search));
+    const matchesTag = !selectedTag || selectedTag === 'Semua' || job.category === selectedTag;
+    return matchesSearch && matchesTag;
+  }).sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
             return (
                 <div id="jobs" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-end mb-8">
