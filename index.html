@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pintukarier.id - Pintu Menuju Karier Impianmu | Portal Loker & Jasa CV ATS</title>
+
+    <!-- SCRIPT KONEKSI SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const { createClient } = supabase;
+        const supabaseUrl = 'https://jtccysnofujwgframdzm.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0Y2N5c25vZnVqd2dmcmFtZHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyMjc3MDYsImV4cCI6MjEwMjgwMzcwNn0.MYHmNLIrwUZ3Kq5-w0phuprtBx2U1O6BsFEyQj71XGA';
+        const db = createClient(supabaseUrl, supabaseKey);
+        console.log("Koneksi Supabase berhasil!", db);
+    </script>
     <link rel="icon" type="image/png" href="logo.png">
     <meta name="description" content="Temukan ribuan lowongan kerja terbaru dari perusahaan terpercaya dan gunakan jasa pembuatan CV ATS-friendly untuk melipatgandakan peluang lolos kerja.">
     
@@ -827,14 +837,5 @@
         root.render(<App />);
     </script>
 
-    <!-- SCRIPT KONEKSI SUPABASE -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        const { createClient } = supabase;
-        const supabaseUrl = 'https://jtccysnofujwgframdzm.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0Y2N5c25vZnVqd2dmcmFtZHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyMjc3MDYsImV4cCI6MjEwMjgwMzcwNn0.MYHmNLIrwUZ3Kq5-w0phuprtBx2U1O6BsFEyQj71XGA';
-        const db = createClient(supabaseUrl, supabaseKey);
-        console.log("Koneksi Supabase berhasil!", db);
-    </script>
 </body>
 </html>
