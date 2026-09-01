@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import useAuth from '../hooks/useAuth';
 import useJobs from '../hooks/useJobs';
 import useJobActions from '../hooks/useJobActions';
@@ -63,6 +64,37 @@ const defaultCVOrders = [
   { id: 1, name: 'Budi Santoso', whatsapp: '08123456789', package: 'Paket ATS Professional (Rp 99k)', status: 'Menunggu Review', date: '2026-06-06' },
   { id: 2, name: 'Siti Rahma', whatsapp: '08987654321', package: 'Paket Bundle CV + LinkedIn (Rp 149k)', status: 'Selesai', date: '2026-06-05' },
 ];
+
+const setMetaTag = (selector, attr, value, content) => {
+  let tag = document.head.querySelector(selector);
+
+  if (!tag) {
+    tag = document.createElement('meta');
+    tag.setAttribute(attr, value);
+    document.head.appendChild(tag);
+  }
+
+  tag.setAttribute('content', content);
+};
+
+const updateOpenGraphMeta = (job = null) => {
+  const siteName = 'Pintukarier.id';
+  const defaultTitle = 'Pintukarier.id | Portal Lowongan Kerja & CV ATS';
+  const defaultDescription = 'Temukan lowongan kerja terbaru, peluang karier, dan layanan pembuatan CV ATS profesional di Pintukarier.id.';
+  const defaultImage = '/IMG-20260728-WA0012 (1).png';
+
+  document.title = job ? `${job.title} | ${job.company} - ${siteName}` : defaultTitle;
+
+  setMetaTag('meta[property="og:title"]', 'property', 'og:title', job ? `${job.title} di ${job.company}` : defaultTitle);
+  setMetaTag('meta[property="og:description"]', 'property', 'og:description', job ? `${job.company} • ${job.location} • ${job.salary}. ${job.desc?.slice(0, 150) || 'Lihat detail lowongan dan segera kirim lamaran.'}` : defaultDescription);
+  setMetaTag('meta[property="og:image"]', 'property', 'og:image', job ? defaultImage : defaultImage);
+  setMetaTag('meta[property="og:url"]', 'property', 'og:url', window.location.href);
+  setMetaTag('meta[property="og:site_name"]', 'property', 'og:site_name', siteName);
+  setMetaTag('meta[name="twitter:title"]', 'name', 'twitter:title', job ? `${job.title} di ${job.company}` : defaultTitle);
+  setMetaTag('meta[name="twitter:description"]', 'name', 'twitter:description', job ? `${job.company} • ${job.location} • ${job.salary}` : defaultDescription);
+  setMetaTag('meta[name="twitter:image"]', 'name', 'twitter:image', defaultImage);
+  setMetaTag('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
+};
 
 const Navbar = ({ onOpenPostJob, onOpenAdminLogin, isAdmin }) => (
   <nav className="bg-white shadow-sm sticky top-0 z-40 border-b border-slate-100">
@@ -135,6 +167,8 @@ const StatsBar = ({ totalJobs }) => (
 );
 
 const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag }) => {
+  const [visibleCount, setVisibleCount] = useState(6);
+
   const filteredJobs = jobs.filter((job) => {
     const search = (searchTerm || '').toLowerCase();
     const matchesSearch = (job.title && job.title.toLowerCase().includes(search)) || (job.company && job.company.toLowerCase().includes(search));
@@ -145,6 +179,13 @@ const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag }) => {
     const bFeatured = b.featured || b.is_featured || false;
     return (bFeatured ? 1 : 0) - (aFeatured ? 1 : 0);
   });
+
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [searchTerm, selectedTag]);
+
+  const visibleJobs = filteredJobs.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredJobs.length;
 
   return (
     <div id="jobs" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -163,35 +204,48 @@ const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag }) => {
           <p className="mt-2 text-sm text-slate-500">Coba kata kunci lain atau pilih kategori yang tersedia.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredJobs.map((job) => {
-            const isFeatured = job.featured || job.is_featured || false;
-            return (
-              <div key={job.id} onClick={() => onSelectJob(job)} className={`bg-white p-6 rounded-xl shadow-sm border transition cursor-pointer flex flex-col justify-between group relative ${isFeatured ? 'border-teal ring-1 ring-teal/50' : 'border-slate-200 hover:shadow-lg'}`}>
-                {isFeatured && (
-                  <span className="absolute -top-3 right-4 bg-teal text-navy text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">🔥 Featured</span>
-                )}
-                <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs font-bold text-teal bg-teal/10 px-2.5 py-1 rounded">{job.category}</span>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {visibleJobs.map((job) => {
+              const isFeatured = job.featured || job.is_featured || false;
+              return (
+                <div key={job.id} onClick={() => onSelectJob(job)} className={`bg-white p-6 rounded-xl shadow-sm border transition cursor-pointer flex flex-col justify-between group relative ${isFeatured ? 'border-teal ring-1 ring-teal/50' : 'border-slate-200 hover:shadow-lg'}`}>
+                  {isFeatured && (
+                    <span className="absolute -top-3 right-4 bg-teal text-navy text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">🔥 Featured</span>
+                  )}
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-xs font-bold text-teal bg-teal/10 px-2.5 py-1 rounded">{job.category}</span>
+                    </div>
+                    <h3 className="font-bold text-lg text-navy group-hover:text-teal transition mb-1">{job.title}</h3>
+                    <p className="text-slate-600 font-semibold text-sm mb-3">{job.company}</p>
+                    <p className="text-slate-500 text-xs line-clamp-2 mb-4">{job.desc}</p>
                   </div>
-                  <h3 className="font-bold text-lg text-navy group-hover:text-teal transition mb-1">{job.title}</h3>
-                  <p className="text-slate-600 font-semibold text-sm mb-3">{job.company}</p>
-                  <p className="text-slate-500 text-xs line-clamp-2 mb-4">{job.desc}</p>
+                  <div>
+                    <div className="text-xs font-semibold text-slate-700 mb-3 bg-slate-50 p-2 rounded flex justify-between">
+                      <span>Gaji:</span> <span className="text-teal font-bold">{job.salary}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs pt-3 border-t border-slate-100">
+                      <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">{job.location}</span>
+                      <span className="text-teal font-bold">{job.type}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs font-semibold text-slate-700 mb-3 bg-slate-50 p-2 rounded flex justify-between">
-                    <span>Gaji:</span> <span className="text-teal font-bold">{job.salary}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs pt-3 border-t border-slate-100">
-                    <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">{job.location}</span>
-                    <span className="text-teal font-bold">{job.type}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+
+          {hasMore && (
+            <div className="mt-8 text-center">
+              <button
+                onClick={() => setVisibleCount((prev) => prev + 6)}
+                className="bg-navy hover:bg-navy/90 text-white font-bold px-6 py-3 rounded-xl shadow transition"
+              >
+                Muat Lebih Banyak
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -259,7 +313,7 @@ const JobDetailModal = ({ job, onClose, onApplyTrack }) => {
 
   const handleApply = () => {
     if (!job.applyTarget || !job.applyTarget.trim()) {
-      alert(`Informasi lamaran untuk posisi ${job.title} belum tersedia.`);
+      toast.error(`Informasi lamaran untuk posisi ${job.title} belum tersedia.`);
       return;
     }
 
@@ -271,23 +325,26 @@ const JobDetailModal = ({ job, onClose, onApplyTrack }) => {
     if (applyType === 'whatsapp') {
       const normalizedWa = normalizeWhatsappNumber(safeTarget);
       if (!normalizedWa) {
-        alert(`Informasi lamaran untuk posisi ${job.title} belum tersedia.`);
+        toast.error(`Informasi lamaran untuk posisi ${job.title} belum tersedia.`);
         return;
       }
 
       const message = encodeURIComponent(`Halo, saya ingin melamar posisi ${job.title} di ${job.company} melalui Pintukarier.id`);
       window.open(`https://wa.me/${normalizedWa}?text=${message}`, '_blank');
+      toast.success(`Lamaran untuk ${job.title} siap dikirim melalui WhatsApp.`);
       return;
     }
 
     if (applyType === 'email') {
       window.location.href = `mailto:${safeTarget}?subject=${encodeURIComponent(`Lamaran ${job.title} - ${job.company}`)}`;
+      toast.success(`Lamaran untuk ${job.title} siap dikirim via email.`);
       return;
     }
 
     let targetUrl = safeTarget;
     if (!targetUrl.startsWith('http')) targetUrl = 'https://' + targetUrl;
     window.open(targetUrl, '_blank');
+    toast.success(`Lamaran untuk ${job.title} sedang dibuka di form pelamaran.`);
   };
 
   const buttonClass = (job.applyType || '').toLowerCase() === 'whatsapp'
@@ -335,11 +392,12 @@ const OrderCVModal = ({ isOpen, onClose, onSubmitOrder }) => {
     e.preventDefault();
     const result = submitCVOrder({ name, whatsapp, packageType });
     if (!result.valid) {
-      alert(result.message);
+      toast.error(result.message);
       return;
     }
+
     onSubmitOrder(result.order);
-    alert(result.message);
+    toast.success(result.message);
     onClose();
   };
 
@@ -661,6 +719,10 @@ export default function JobBoard() {
   useEffect(() => {
     localStorage.setItem('pintukarier_cv_v3', JSON.stringify(cvOrders));
   }, [cvOrders]);
+
+  useEffect(() => {
+    updateOpenGraphMeta(selectedJob);
+  }, [selectedJob]);
 
   const handleApplyTrack = async (jobId) => {
     const targetJob = jobs.find(j => j.id === jobId);

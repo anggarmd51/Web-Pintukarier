@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 
 export default function useJobActions({ jobs, setJobs }) {
@@ -52,9 +53,11 @@ export default function useJobActions({ jobs, setJobs }) {
         )
       );
 
+      toast.success(`Status lowongan berhasil diperbarui menjadi ${newStatus}.`);
       return true;
     } catch (error) {
       console.error('Gagal mengubah status lowongan:', error.message);
+      toast.error('Gagal memperbarui status lowongan.');
       return false;
     }
   };
