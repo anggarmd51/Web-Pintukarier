@@ -49,12 +49,20 @@ export default function useAuth() {
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
 
-    if (error) throw error;
+      if (error) {
+        setIsLoggedIn(false);
+        return false;
+      }
 
-    setIsLoggedIn(false);
-    return true;
+      setIsLoggedIn(false);
+      return true;
+    } catch (error) {
+      setIsLoggedIn(false);
+      return false;
+    }
   };
 
   return {
