@@ -8,7 +8,10 @@ export default function useJobs() {
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('jobs').select('*');
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('status', 'Aktif');
 
       if (error) throw error;
 
