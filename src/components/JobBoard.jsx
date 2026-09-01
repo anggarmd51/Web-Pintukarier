@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Facebook, Instagram, Linkedin, Music2, SearchX } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useAuth from '../hooks/useAuth';
 import useJobs from '../hooks/useJobs';
@@ -14,7 +15,7 @@ const defaultJobs = [
     location: 'Medan',
     type: 'Full Time',
     salary: 'Rp 6jt - 9jt',
-    category: 'Business',
+    category: 'Sales & Marketing',
     status: 'Aktif',
     featured: true,
     urgent: false,
@@ -65,6 +66,11 @@ const defaultCVOrders = [
   { id: 2, name: 'Siti Rahma', whatsapp: '08987654321', package: 'Paket Bundle CV + LinkedIn (Rp 149k)', status: 'Selesai', date: '2026-06-05' },
 ];
 
+const publicCategories = ['IT & Software', 'Sales & Marketing', 'Keuangan/Akuntansi', 'HRD/Personalia', 'Administrasi', 'Teknik/Engineering', 'Logistik/Operasional', 'Pelayanan Pelanggan'];
+
+const sortJobsByFeatured = (items = []) =>
+  [...items].sort((a, b) => Number(b.featured || b.is_featured || false) - Number(a.featured || a.is_featured || false));
+
 const setMetaTag = (selector, attr, value, content) => {
   let tag = document.head.querySelector(selector);
 
@@ -96,34 +102,109 @@ const updateOpenGraphMeta = (job = null) => {
   setMetaTag('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
 };
 
-const Navbar = ({ onOpenPostJob, onOpenAdminLogin, isAdmin }) => (
-  <nav className="bg-white shadow-sm sticky top-0 z-40 border-b border-slate-100">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-      <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-        <img src="./IMG-20260728-WA0012 (1).png" alt="Logo Pintukarier" className="h-9 w-auto object-contain" />
-        <div className="bg-navy px-4 py-2 rounded-xl shadow-md transition-transform group-hover:scale-[1.02]">
-          <span className="text-xs sm:text-sm font-bold text-white tracking-[0.25em] uppercase whitespace-nowrap">PINTU KARIER.ID</span>
+const Navbar = ({ onOpenPostJob, onOpenAdminLogin, isAdmin }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleNavClick = (callback) => {
+    setIsOpen(false);
+    if (callback) callback();
+  };
+
+  return (
+    <nav className="bg-white shadow-sm sticky top-0 z-40 border-b border-slate-100">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
+            <div className="flex items-center cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <img src="./IMG-20260728-WA0012 (1).png" alt="Logo Pintukarier" className="h-8 sm:h-9 w-auto object-contain" />
+              <div className="bg-navy px-3 sm:px-4 py-2 rounded-xl shadow-md transition-transform group-hover:scale-[1.02]">
+                <span className="text-[10px] sm:text-xs lg:text-sm font-bold text-white tracking-[0.18em] sm:tracking-[0.25em] uppercase whitespace-nowrap">PINTU KARIER.ID</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              aria-label="Toggle menu"
+              aria-expanded={isOpen}
+              onClick={() => setIsOpen((prev) => !prev)}
+              className="md:hidden flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 shadow-sm"
+            >
+              <span className="flex flex-col gap-1.5">
+                <span className={`block h-0.5 w-5 rounded-full bg-slate-700 transition-all duration-300 ease-out ${isOpen ? 'translate-y-2 rotate-45' : ''}`} />
+                <span className={`block h-0.5 w-5 rounded-full bg-slate-700 transition-all duration-300 ease-out ${isOpen ? 'opacity-0' : 'opacity-100'}`} />
+                <span className={`block h-0.5 w-5 rounded-full bg-slate-700 transition-all duration-300 ease-out ${isOpen ? '-translate-y-2 -rotate-45' : ''}`} />
+              </span>
+            </button>
+          </div>
+
+          <div className="hidden md:flex space-x-4 lg:space-x-6 font-medium text-slate-600 items-center text-sm">
+            <a href="#jobs" className="hover:text-teal transition">Cari Kerja</a>
+            <a href="#cv-service" className="hover:text-teal transition">Buat CV ATS</a>
+            <a href="#community" className="hover:text-teal transition">Komunitas</a>
+            <button onClick={onOpenPostJob} className="bg-teal hover:bg-teal/90 text-navy font-bold px-4 py-2 rounded-lg shadow-sm transition text-sm">Pasang Lowongan</button>
+            <button onClick={onOpenAdminLogin} className="border border-slate-300 hover:border-teal text-slate-700 hover:text-teal px-3 py-2 rounded-lg font-medium transition text-sm">{isAdmin ? 'Dashboard Admin' : '🔑 Login'}</button>
+          </div>
+        </div>
+
+        <div
+          className={`md:hidden overflow-hidden transition-all duration-300 ease-out ${
+            isOpen
+              ? 'mt-3 max-h-96 opacity-100 visible rounded-xl border border-slate-200 bg-white shadow-lg'
+              : 'max-h-0 opacity-0 invisible mt-0 border-0'
+          }`}
+        >
+          <div className="flex flex-col divide-y divide-slate-100">
+            {[
+              { href: '#jobs', label: 'Cari Kerja' },
+              { href: '#cv-service', label: 'Buat CV ATS' },
+              { href: '#community', label: 'Komunitas' }
+            ].map((item, index) => (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={`px-4 py-3 text-sm font-medium text-slate-700 transition-all duration-300 ease-out hover:bg-slate-50 ${
+                  isOpen ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0'
+                }`}
+                style={{ transitionDelay: isOpen ? `${index * 60}ms` : '0ms' }}
+              >
+                {item.label}
+              </a>
+            ))}
+            <button
+              onClick={() => handleNavClick(onOpenPostJob)}
+              className={`px-4 py-3 text-left text-sm font-bold text-navy bg-teal/10 transition-all duration-300 ease-out hover:bg-teal/20 ${
+                isOpen ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0'
+              }`}
+              style={{ transitionDelay: isOpen ? '180ms' : '0ms' }}
+            >
+              Pasang Lowongan
+            </button>
+            <button
+              onClick={() => handleNavClick(onOpenAdminLogin)}
+              className={`px-4 py-3 text-left text-sm font-medium text-slate-700 transition-all duration-300 ease-out hover:bg-slate-50 ${
+                isOpen ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0'
+              }`}
+              style={{ transitionDelay: isOpen ? '220ms' : '0ms' }}
+            >
+              {isAdmin ? 'Dashboard Admin' : '🔑 Login'}
+            </button>
+          </div>
         </div>
       </div>
-      <div className="hidden md:flex space-x-6 font-medium text-slate-600 items-center text-sm">
-        <a href="#jobs" className="hover:text-teal transition">Cari Kerja</a>
-        <a href="#cv-service" className="hover:text-teal transition">Buat CV ATS</a>
-        <a href="#community" className="hover:text-teal transition">Komunitas</a>
-        <button onClick={onOpenPostJob} className="bg-teal hover:bg-teal/90 text-navy font-bold px-4 py-2 rounded-lg shadow-sm transition text-sm">Pasang Lowongan</button>
-        <button onClick={onOpenAdminLogin} className="border border-slate-300 hover:border-teal text-slate-700 hover:text-teal px-3 py-2 rounded-lg font-medium transition text-sm">{isAdmin ? 'Dashboard Admin' : '🔑 Admin'}</button>
-      </div>
-    </div>
-  </nav>
-);
+    </nav>
+  );
+};
 
 const Hero = ({ searchTerm, setSearchTerm, selectedTag, setSelectedTag }) => {
-  const tags = ['Semua', 'Business', 'Tech', 'Remote', 'HR', 'Fresh Graduate'];
+  const tags = ['Semua', ...publicCategories];
+
   return (
-    <div className="bg-navy text-white py-16 px-4 text-center relative overflow-hidden">
+    <div className="bg-navy text-white py-10 sm:py-16 px-4 text-center relative overflow-hidden">
       <div className="max-w-4xl mx-auto relative z-10">
-        <span className="bg-teal/15 text-teal text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block">Portal Karier & B2B Talent Terpercaya</span>
-        <h1 className="text-3xl sm:text-5xl font-extrabold mb-4 leading-tight">Wujudkan Karier Impianmu Bersama Perusahaan Terbaik</h1>
-        <p className="text-slate-300 mb-8 max-w-2xl mx-auto text-sm sm:text-base">Ribuan lowongan terverifikasi dan layanan optimasi CV profesional siap mengantar kesuksesan kariermu.</p>
+        <span className="bg-teal/15 text-teal text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block">Portal Karier & B2B Talent Terpercaya</span>
+        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold mb-4 leading-tight">Wujudkan Karier Impianmu Bersama Perusahaan Terbaik</h1>
+        <p className="text-slate-300 mb-8 max-w-2xl mx-auto text-xs sm:text-sm lg:text-base">Ribuan lowongan terverifikasi dan layanan optimasi CV profesional siap mengantar kesuksesan kariermu.</p>
 
         <div className="bg-white p-2 rounded-xl shadow-xl flex flex-col sm:flex-row gap-2 max-w-2xl mx-auto">
           <div className="flex items-center flex-1 px-3 py-2">
@@ -131,14 +212,20 @@ const Hero = ({ searchTerm, setSearchTerm, selectedTag, setSelectedTag }) => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari posisi, keahlian, atau perusahaan..."
+              placeholder="Cari posisi, perusahaan, atau lokasi..."
               className="w-full text-slate-800 focus:outline-none text-sm bg-transparent"
             />
           </div>
-          <button className="bg-teal hover:bg-teal/90 text-navy font-bold px-8 py-3 rounded-lg transition text-sm">Cari Loker</button>
+          <button
+            type="button"
+            onClick={() => document.getElementById('jobs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            className="bg-teal hover:bg-teal/90 text-navy font-bold px-6 sm:px-8 py-3 rounded-lg transition text-sm w-full sm:w-auto"
+          >
+            Cari Loker
+          </button>
         </div>
 
-        <div className="mt-6 flex flex-wrap justify-center items-center gap-2 text-xs">
+        <div className="mt-6 flex flex-wrap justify-center items-center gap-2 text-[10px] sm:text-xs">
           <span className="text-slate-400 font-medium mr-1">Kategori Populer:</span>
           {tags.map((tag) => (
             <button
@@ -155,23 +242,82 @@ const Hero = ({ searchTerm, setSearchTerm, selectedTag, setSelectedTag }) => {
   );
 };
 
-const StatsBar = ({ totalJobs }) => (
+const StatsBar = ({ totalJobs, totalCompanies, totalApplicants }) => (
   <div className="bg-white border-b border-slate-100 py-6 shadow-sm">
     <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
       <div><div className="text-2xl font-extrabold text-navy">{totalJobs}+</div><div className="text-slate-500 text-sm">Lowongan Aktif</div></div>
-      <div><div className="text-2xl font-extrabold text-navy">350+</div><div className="text-slate-500 text-sm">Perusahaan Mitra</div></div>
-      <div><div className="text-2xl font-extrabold text-navy">50.000+</div><div className="text-slate-500 text-sm">Pencari Kerja Aktif</div></div>
+      <div><div className="text-2xl font-extrabold text-navy">{totalCompanies}+</div><div className="text-slate-500 text-sm">Perusahaan Mitra</div></div>
+      <div><div className="text-2xl font-extrabold text-navy">{totalApplicants}+</div><div className="text-slate-500 text-sm">Pencari Kerja Aktif</div></div>
       <div><div className="text-2xl font-extrabold text-navy">95%</div><div className="text-slate-500 text-sm">Tingkat Kepuasan CV</div></div>
     </div>
   </div>
 );
 
-const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag }) => {
+const getCompanyInitials = (company = '') =>
+  company
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join('') || 'P';
+
+const JobLogo = ({ company, logoUrl }) => {
+  const [hasError, setHasError] = useState(false);
+  const [resolvedUrl, setResolvedUrl] = useState(logoUrl || '');
+
+  useEffect(() => {
+    setHasError(false);
+    setResolvedUrl(logoUrl || '');
+  }, [company, logoUrl]);
+
+  if (!resolvedUrl || hasError) {
+    return (
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-teal/20 to-sky-100 text-sm font-extrabold text-navy shadow-inner ring-1 ring-slate-200">
+        {getCompanyInitials(company)}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={resolvedUrl}
+      alt={`${company} logo`}
+      onError={() => setHasError(true)}
+      className="h-12 w-12 rounded-xl object-cover shadow-sm ring-1 ring-slate-200 bg-white"
+    />
+  );
+};
+
+const JobSkeleton = () => (
+  <div className="animate-pulse rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+    <div className="flex items-center justify-between mb-4">
+      <div className="h-8 w-20 rounded-full bg-slate-200" />
+      <div className="h-6 w-6 rounded-full bg-slate-200" />
+    </div>
+    <div className="h-5 w-2/3 rounded bg-slate-200 mb-2" />
+    <div className="h-4 w-1/2 rounded bg-slate-200 mb-4" />
+    <div className="space-y-2 mb-5">
+      <div className="h-3 w-full rounded bg-slate-200" />
+      <div className="h-3 w-5/6 rounded bg-slate-200" />
+      <div className="h-3 w-4/6 rounded bg-slate-200" />
+    </div>
+    <div className="h-10 w-full rounded-lg bg-slate-200 mb-3" />
+    <div className="flex items-center justify-between gap-3">
+      <div className="h-7 w-24 rounded-full bg-slate-200" />
+      <div className="h-7 w-20 rounded-full bg-slate-200" />
+    </div>
+  </div>
+);
+
+const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag, onResetFilters, loading }) => {
   const [visibleCount, setVisibleCount] = useState(6);
 
   const filteredJobs = jobs.filter((job) => {
     const search = (searchTerm || '').toLowerCase();
-    const matchesSearch = (job.title && job.title.toLowerCase().includes(search)) || (job.company && job.company.toLowerCase().includes(search));
+    const matchesSearch =
+      (job.title && job.title.toLowerCase().includes(search)) ||
+      (job.company && job.company.toLowerCase().includes(search)) ||
+      (job.location && job.location.toLowerCase().includes(search));
     const matchesTag = !selectedTag || selectedTag === 'Semua' || job.category === selectedTag;
     return matchesSearch && matchesTag;
   }).sort((a, b) => {
@@ -188,46 +334,69 @@ const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag }) => {
   const hasMore = visibleCount < filteredJobs.length;
 
   return (
-    <div id="jobs" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="flex justify-between items-end mb-8">
+    <div id="jobs" className="py-10 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-end mb-6 sm:mb-8">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-navy">Lowongan Kerja Terbaru</h2>
-          <p className="text-slate-500 text-sm mt-1">Peluang karier pilihan untuk profesional Indonesia</p>
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-navy">Lowongan Kerja Terbaru</h2>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1">Peluang karier pilihan untuk profesional Indonesia</p>
         </div>
-        <span className="text-sm font-semibold text-teal bg-teal/10 px-3 py-1 rounded-full">{filteredJobs.length} Lowongan Tersedia</span>
+        <span className="inline-flex self-start sm:self-auto text-xs sm:text-sm font-semibold text-teal bg-teal/10 px-3 py-1 rounded-full">{filteredJobs.length} Lowongan Tersedia</span>
       </div>
 
-      {filteredJobs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-slate-300 py-16 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl">🔎</div>
-          <h3 className="text-xl font-bold text-navy">Lowongan tidak ditemukan</h3>
-          <p className="mt-2 text-sm text-slate-500">Coba kata kunci lain atau pilih kategori yang tersedia.</p>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <JobSkeleton key={index} />
+          ))}
+        </div>
+      ) : filteredJobs.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-dashed border-slate-300 py-12 sm:py-16 text-center shadow-sm px-4">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-500 shadow-inner ring-1 ring-slate-200">
+            <SearchX className="h-8 w-8" />
+          </div>
+          <h3 className="text-lg sm:text-xl font-bold text-navy">Lowongan tidak ditemukan</h3>
+          <p className="mt-2 text-xs sm:text-sm text-slate-500 max-w-md mx-auto">Belum ada hasil yang cocok dengan pencarian atau filter saat ini. Coba ubah kata kunci atau reset filter untuk melihat seluruh lowongan aktif.</p>
+          <button
+            onClick={onResetFilters}
+            className="mt-5 inline-flex items-center justify-center rounded-xl bg-navy px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800"
+          >
+            Reset Filter
+          </button>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleJobs.map((job) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {visibleJobs.map((job, index) => {
               const isFeatured = job.featured || job.is_featured || false;
+              const logoUrl = job.logo || job.logo_url || job.companyLogo || '';
               return (
-                <div key={job.id} onClick={() => onSelectJob(job)} className={`bg-white p-6 rounded-xl shadow-sm border transition cursor-pointer flex flex-col justify-between group relative ${isFeatured ? 'border-teal ring-1 ring-teal/50' : 'border-slate-200 hover:shadow-lg'}`}>
+                <div
+                  key={job.id}
+                  onClick={() => onSelectJob(job)}
+                  className={`group relative flex cursor-pointer flex-col justify-between rounded-xl border bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg sm:p-6 ${isFeatured ? 'border-teal ring-1 ring-teal/50' : 'border-slate-200'}`}
+                  style={{ animationDelay: `${index * 80}ms` }}
+                >
                   {isFeatured && (
                     <span className="absolute -top-3 right-4 bg-teal text-navy text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">🔥 Featured</span>
                   )}
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs font-bold text-teal bg-teal/10 px-2.5 py-1 rounded">{job.category}</span>
+                  <div className="mb-4 flex items-center gap-3">
+                    <JobLogo company={job.company} logoUrl={logoUrl} />
+                    <div className="min-w-0 flex-1">
+                      <span className="inline-flex rounded bg-teal/10 px-2.5 py-1 text-[10px] font-bold text-teal sm:text-xs">{job.category}</span>
                     </div>
-                    <h3 className="font-bold text-lg text-navy group-hover:text-teal transition mb-1">{job.title}</h3>
-                    <p className="text-slate-600 font-semibold text-sm mb-3">{job.company}</p>
-                    <p className="text-slate-500 text-xs line-clamp-2 mb-4">{job.desc}</p>
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-slate-700 mb-3 bg-slate-50 p-2 rounded flex justify-between">
-                      <span>Gaji:</span> <span className="text-teal font-bold">{job.salary}</span>
+                    <h3 className="mb-1 text-base font-bold text-navy transition group-hover:text-teal sm:text-lg">{job.title}</h3>
+                    <p className="mb-3 text-xs font-semibold text-slate-600 sm:text-sm">{job.company}</p>
+                    <p className="mb-4 text-[11px] text-slate-500 line-clamp-2 sm:text-xs">{job.desc}</p>
+                  </div>
+                  <div>
+                    <div className="mb-3 flex justify-between gap-2 rounded bg-slate-50 p-2 text-[11px] font-semibold text-slate-700 sm:text-xs">
+                      <span>Gaji:</span> <span className="text-right font-bold text-teal">{job.salary}</span>
                     </div>
-                    <div className="flex justify-between items-center text-xs pt-3 border-t border-slate-100">
-                      <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">{job.location}</span>
-                      <span className="text-teal font-bold">{job.type}</span>
+                    <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3 text-[11px] sm:text-xs">
+                      <span className="max-w-[60%] truncate rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{job.location}</span>
+                      <span className="font-bold text-teal">{job.type}</span>
                     </div>
                   </div>
                 </div>
@@ -239,7 +408,7 @@ const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag }) => {
             <div className="mt-8 text-center">
               <button
                 onClick={() => setVisibleCount((prev) => prev + 6)}
-                className="bg-navy hover:bg-navy/90 text-white font-bold px-6 py-3 rounded-xl shadow transition"
+                className="bg-navy hover:bg-navy/90 text-white font-bold px-5 sm:px-6 py-3 rounded-xl shadow transition w-full sm:w-auto"
               >
                 Muat Lebih Banyak
               </button>
@@ -289,7 +458,35 @@ const Footer = () => (
       <div className="inline-block bg-white/5 px-4 py-2 rounded-xl mb-2">
         <span className="text-lg font-bold tracking-[0.2em] uppercase text-white">PINTU KARIER.ID</span>
       </div>
-      <p className="text-slate-400 text-sm mb-4 max-w-lg mx-auto">Pintu Menuju Karier Impianmu • Platform Informasi Lowongan Kerja & B2B Talent Terpercaya.</p>
+      <p className="text-slate-400 text-sm mb-5 max-w-lg mx-auto">Pintu Menuju Karier Impianmu • Platform Informasi Lowongan Kerja & B2B Talent Terpercaya.</p>
+
+      <div className="mb-5 flex flex-wrap items-center justify-center gap-3">
+        <a href="https://www.instagram.com/pintukarier.id?igsi=bTZmamhmbnNkYmto" target="_blank" rel="noreferrer" aria-label="Instagram Pintukarier.id" className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-200 transition-all duration-300 hover:-translate-y-0.5 hover:border-pink-400/60 hover:bg-gradient-to-r hover:from-pink-500/20 hover:to-orange-400/20 hover:text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-pink-300 transition-colors duration-300 group-hover:bg-pink-500/20 group-hover:text-pink-200">
+            <Instagram className="h-4 w-4" />
+          </span>
+          <span className="font-medium">@pintukarier.id</span>
+        </a>
+        <a href="https://www.tiktok.com/@pintukarier.id?_r=1&_t=ZS-99NYB9OYGmb" target="_blank" rel="noreferrer" aria-label="TikTok Pintukarier.id" className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-200 transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300/60 hover:bg-slate-100/10 hover:text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-slate-200 transition-colors duration-300 group-hover:bg-slate-100/20 group-hover:text-white">
+            <Music2 className="h-4 w-4" />
+          </span>
+          <span className="font-medium">@pintukarier.id</span>
+        </a>
+        <a href="https://www.linkedin.com/company/pintukarierid/" target="_blank" rel="noreferrer" aria-label="LinkedIn Pintukarier.id" className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-200 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-400/60 hover:bg-blue-500/10 hover:text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-blue-300 transition-colors duration-300 group-hover:bg-blue-500/20 group-hover:text-blue-100">
+            <Linkedin className="h-4 w-4" />
+          </span>
+          <span className="font-medium">pintukarier.id</span>
+        </a>
+        <a href="https://www.facebook.com/share/1KyKUkA7UQ/" target="_blank" rel="noreferrer" aria-label="Facebook Pintukarier.id" className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-200 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-500/60 hover:bg-blue-600/10 hover:text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-blue-400 transition-colors duration-300 group-hover:bg-blue-600/20 group-hover:text-blue-100">
+            <Facebook className="h-4 w-4" />
+          </span>
+          <span className="font-medium">pintukarier.id</span>
+        </a>
+      </div>
+
       <p className="text-slate-500 text-xs">© {new Date().getFullYear()} Pintukarier.id. Seluruh hak cipta dilindungi.</p>
     </div>
   </footer>
@@ -352,29 +549,29 @@ const JobDetailModal = ({ job, onClose, onApplyTrack }) => {
     : 'w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow text-center block';
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-xl">✕</button>
-        <span className="text-xs font-bold text-teal bg-teal/10 px-3 py-1 rounded-full">{job.category}</span>
-        <h2 className="text-2xl font-bold text-navy mt-3 mb-1">{job.title}</h2>
-        <p className="text-slate-600 font-semibold mb-4">{job.company} • {job.location}</p>
-        <div className="bg-slate-50 p-4 rounded-xl mb-4 text-sm space-y-2">
-          <div className="flex justify-between"><strong>Kisaran Gaji:</strong> <span className="text-teal font-bold">{job.salary}</span></div>
-          <div className="flex justify-between"><strong>Tipe Pekerjaan:</strong> <span>{job.type}</span></div>
+        <span className="text-[10px] sm:text-xs font-bold text-teal bg-teal/10 px-3 py-1 rounded-full">{job.category}</span>
+        <h2 className="text-xl sm:text-2xl font-bold text-navy mt-3 mb-1">{job.title}</h2>
+        <p className="text-slate-600 font-semibold mb-4 text-sm sm:text-base">{job.company} • {job.location}</p>
+        <div className="bg-slate-50 p-3 sm:p-4 rounded-xl mb-4 text-xs sm:text-sm space-y-2">
+          <div className="flex justify-between gap-3"><strong>Kisaran Gaji:</strong> <span className="text-teal font-bold text-right">{job.salary}</span></div>
+          <div className="flex justify-between gap-3"><strong>Tipe Pekerjaan:</strong> <span className="text-right">{job.type}</span></div>
         </div>
-        <h3 className="font-bold text-navy mb-2">Deskripsi Pekerjaan:</h3>
-        <p className="text-slate-600 text-sm mb-4 leading-relaxed">{job.desc}</p>
+        <h3 className="font-bold text-navy mb-2 text-sm sm:text-base">Deskripsi Pekerjaan:</h3>
+        <p className="text-slate-600 text-xs sm:text-sm mb-4 leading-relaxed">{job.desc}</p>
 
         {job.requirements && job.requirements.length > 0 && (
           <>
-            <h3 className="font-bold text-navy mb-2">Persyaratan / Kualifikasi:</h3>
-            <ul className="list-disc list-inside text-slate-600 text-sm mb-6 space-y-1">
+            <h3 className="font-bold text-navy mb-2 text-sm sm:text-base">Persyaratan / Kualifikasi:</h3>
+            <ul className="list-disc list-inside text-slate-600 text-xs sm:text-sm mb-6 space-y-1">
               {job.requirements.map((req, idx) => <li key={idx}>{req}</li>)}
             </ul>
           </>
         )}
 
-        <button onClick={handleApply} className={buttonClass}>Kirim Lamaran Sekarang ({job.applyType ? job.applyType.toUpperCase() : 'WEB'})</button>
+        <button onClick={handleApply} className={`${buttonClass} text-sm sm:text-base`}>Kirim Lamaran Sekarang ({job.applyType ? job.applyType.toUpperCase() : 'WEB'})</button>
       </div>
     </div>
   );
@@ -402,10 +599,10 @@ const OrderCVModal = ({ isOpen, onClose, onSubmitOrder }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 font-bold text-xl">✕</button>
-        <h2 className="text-xl font-bold text-navy mb-4">Pesan Layanan CV ATS Profesional</h2>
+        <h2 className="text-lg sm:text-xl font-bold text-navy mb-4">Pesan Layanan CV ATS Profesional</h2>
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
           <div><label className="block font-semibold mb-1">Nama Lengkap</label><input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-teal outline-none" placeholder="Masukkan nama..." /></div>
           <div><label className="block font-semibold mb-1">Nomor WhatsApp Aktif</label><input type="text" required value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-teal outline-none" placeholder="Contoh: 08123456789" /></div>
@@ -423,7 +620,7 @@ const PostJobModal = ({ isOpen, onClose, onAddJob }) => {
   const [location, setLocation] = useState('');
   const [salary, setSalary] = useState('');
   const [desc, setDesc] = useState('');
-  const [category, setCategory] = useState('Business');
+  const [category, setCategory] = useState('IT & Software');
   const [type, setType] = useState('Full Time');
   const [applyType, setApplyType] = useState('whatsapp');
   const [applyTarget, setApplyTarget] = useState('');
@@ -459,26 +656,26 @@ const PostJobModal = ({ isOpen, onClose, onAddJob }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 font-bold text-xl">✕</button>
-        <h2 className="text-2xl font-bold text-navy mb-2">Pasang Lowongan Pekerjaan Baru</h2>
-        <p className="text-slate-500 text-xs mb-4">Lowongan akan ditinjau admin setelah Anda melakukan konfirmasi via WhatsApp.</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-navy mb-2">Pasang Lowongan Pekerjaan Baru</h2>
+        <p className="text-slate-500 text-[11px] sm:text-xs mb-4">Lowongan akan ditinjau admin setelah Anda melakukan konfirmasi via WhatsApp.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
-          <div><label className="block font-semibold mb-1">Posisi Jabatan</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2.5 rounded-lg" placeholder="Sales" /></div>
-          <div><label className="block font-semibold mb-1">Nama Perusahaan</label><input required value={company} onChange={e => setCompany(e.target.value)} className="w-full border p-2.5 rounded-lg" placeholder="PT. ____" /></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div><label className="block font-semibold mb-1">Posisi Jabatan</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2.5 rounded-lg" placeholder="Digital Marketing Specialist" /></div>
+          <div><label className="block font-semibold mb-1">Nama Perusahaan</label><input required value={company} onChange={e => setCompany(e.target.value)} className="w-full border p-2.5 rounded-lg" placeholder="PT Inovasi Teknologi Nusantara" /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block font-semibold mb-1">Lokasi</label><input value={location} onChange={e => setLocation(e.target.value)} className="w-full border p-2.5 rounded-lg" placeholder="Medan / Remote" /></div>
-            <div><label className="block font-semibold mb-1">Kategori</label><select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2.5 rounded-lg"><option>Business</option><option>Tech</option><option>Remote</option><option>HR</option><option>Fresh Graduate</option></select></div>
+            <div><label className="block font-semibold mb-1">Kategori</label><select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2.5 rounded-lg"><option>IT & Software</option><option>Sales & Marketing</option><option>Keuangan / Akuntansi</option><option>HRD / Personalia</option><option>Administrasi</option><option>Teknik / Engineering</option><option>Logistik / Operasional</option><option>Pelayanan Pelanggan</option></select></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block font-semibold mb-1">Jenis Pekerjaan</label><select value={type} onChange={e => setType(e.target.value)} className="w-full border p-2.5 rounded-lg"><option>Full Time</option><option>Kontrak</option><option>Remote</option><option>Mitra</option><option>Freelance</option></select></div>
             <div><label className="block font-semibold mb-1">Kisaran Gaji</label><input value={salary} onChange={e => setSalary(e.target.value)} className="w-full border p-2.5 rounded-lg" placeholder="Rp 5jt - 8jt" /></div>
           </div>
           <div><label className="block font-semibold mb-1">Deskripsi Pekerjaan</label><textarea value={desc} onChange={e => setDesc(e.target.value)} rows="3" className="w-full border p-2.5 rounded-lg" placeholder="Tuliskan deskripsi pekerjaan..."></textarea></div>
 
-          <div className="grid grid-cols-2 gap-4 border-t pt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-3">
             <div><label className="block font-semibold mb-1">Metode Pelamar Melamar</label><select value={applyType} onChange={e => setApplyType(e.target.value)} className="w-full border p-2.5 rounded-lg"><option value="whatsapp">WhatsApp HR</option><option value="email">Email HR</option><option value="gform">Google Form / Web URL</option></select></div>
             <div><label className="block font-semibold mb-1">Tujuan (No WA / Email / Link)</label><input required value={applyTarget} onChange={e => setApplyTarget(e.target.value)} className="w-full border p-2.5 rounded-lg" placeholder="0812xxxx atau hr@mail.com" /></div>
           </div>
@@ -508,23 +705,23 @@ const EditJobModal = ({ job, onClose, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 font-bold text-xl">✕</button>
-        <h2 className="text-2xl font-bold text-navy mb-4">Edit Lowongan Pekerjaan</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-navy mb-4">Edit Lowongan Pekerjaan</h2>
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
           <div><label className="block font-semibold mb-1">Posisi Jabatan</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2.5 rounded-lg" /></div>
           <div><label className="block font-semibold mb-1">Nama Perusahaan</label><input required value={company} onChange={e => setCompany(e.target.value)} className="w-full border p-2.5 rounded-lg" /></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block font-semibold mb-1">Lokasi</label><input value={location} onChange={e => setLocation(e.target.value)} className="w-full border p-2.5 rounded-lg" /></div>
             <div><label className="block font-semibold mb-1">Kategori</label><select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2.5 rounded-lg"><option>Business</option><option>Tech</option><option>Remote</option><option>HR</option><option>Fresh Graduate</option></select></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block font-semibold mb-1">Jenis Pekerjaan</label><select value={type} onChange={e => setType(e.target.value)} className="w-full border p-2.5 rounded-lg"><option>Full Time</option><option>Kontrak</option><option>Remote</option><option>Mitra</option><option>Freelance</option></select></div>
             <div><label className="block font-semibold mb-1">Gaji</label><input value={salary} onChange={e => setSalary(e.target.value)} className="w-full border p-2.5 rounded-lg" /></div>
           </div>
           <div><label className="block font-semibold mb-1">Deskripsi</label><textarea value={desc} onChange={e => setDesc(e.target.value)} rows="3" className="w-full border p-2.5 rounded-lg"></textarea></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block font-semibold mb-1">Metode Lamaran</label><select value={applyType} onChange={e => setApplyType(e.target.value)} className="w-full border p-2.5 rounded-lg"><option value="whatsapp">WhatsApp</option><option value="email">Email</option><option value="gform">Google Form / URL</option></select></div>
             <div><label className="block font-semibold mb-1">Target Tujuan</label><input value={applyTarget} onChange={e => setApplyTarget(e.target.value)} className="w-full border p-2.5 rounded-lg" /></div>
           </div>
@@ -555,10 +752,10 @@ const AdminLoginModal = ({ isOpen, onClose, onLoginSuccess, login }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-white rounded-2xl max-w-sm w-full p-4 sm:p-6 shadow-2xl relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 font-bold text-xl">✕</button>
-        <h2 className="text-xl font-bold text-navy mb-4">Login Superadmin</h2>
+        <h2 className="text-lg sm:text-xl font-bold text-navy mb-4">Login Superadmin</h2>
         <form onSubmit={handleLogin} className="space-y-4 text-sm">
           <div><label className="block font-semibold mb-1">Username</label><input type="text" required value={username} onChange={e => setUsername(e.target.value)} className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-teal" /></div>
           <div><label className="block font-semibold mb-1">Password</label><input type="password" required value={pwd} onChange={e => setPwd(e.target.value)} className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-teal" /></div>
@@ -584,6 +781,8 @@ const SuperAdminDashboard = ({ jobs, setJobs, cvOrders, setCvOrders, onLogout, u
   const activeJobsCount = jobs.filter(j => j.status === 'Aktif').length;
   const pendingJobsCount = jobs.filter(j => j.status === 'Menunggu Persetujuan').length;
   const totalApplicants = jobs.reduce((sum, j) => sum + (j.applicantsCount || 0), 0);
+  const premiumJobsCount = jobs.filter(j => (j.featured || j.is_featured) && j.status === 'Aktif').length;
+  const totalCompanies = new Set(jobs.filter(Boolean).map(job => (job.company || '').trim()).filter(Boolean)).size;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
@@ -610,7 +809,11 @@ const SuperAdminDashboard = ({ jobs, setJobs, cvOrders, setCvOrders, onLogout, u
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200"><div className="text-slate-500 text-sm">Lowongan Aktif Tayang</div><div className="text-3xl font-extrabold text-navy mt-1">{activeJobsCount}</div></div>
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200"><div className="text-slate-500 text-sm">Menunggu Persetujuan</div><div className="text-3xl font-extrabold text-amber-500 mt-1">{pendingJobsCount}</div></div>
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200"><div className="text-slate-500 text-sm">Total Pelamar Masuk</div><div className="text-3xl font-extrabold text-teal mt-1">{totalApplicants}</div></div>
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200"><div className="text-slate-500 text-sm">Total Perusahaan Mitra</div><div className="text-3xl font-extrabold text-teal mt-1">{totalCompanies}</div></div>
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200"><div className="text-slate-500 text-sm">Lowongan Premium Aktif</div><div className="text-3xl font-extrabold text-violet-600 mt-1">{premiumJobsCount}</div></div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-4">
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200"><div className="text-slate-500 text-sm">Total Pelamar Masuk</div><div className="text-3xl font-extrabold text-navy mt-1">{totalApplicants}</div></div>
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200"><div className="text-slate-500 text-sm">Total Pesanan Layanan CV</div><div className="text-3xl font-extrabold text-navy mt-1">{cvOrders.length}</div></div>
             </div>
           </div>
@@ -640,7 +843,14 @@ const SuperAdminDashboard = ({ jobs, setJobs, cvOrders, setCvOrders, onLogout, u
                           <td className="p-3"><div className="font-bold text-navy whitespace-normal max-w-xs">{job.title}</div><div className="text-xs text-slate-500 whitespace-normal max-w-xs">{job.company} • {job.location}</div></td>
                           <td className="p-3"><span className="bg-slate-100 px-2.5 py-1 rounded text-xs">{job.category}</span></td>
                           <td className="p-3 font-extrabold text-teal">{job.applicantsCount || 0} pelamar</td>
-                          <td className="p-3"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${job.status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : job.status === 'Menunggu Persetujuan' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'}`}>{job.status}</span></td>
+                          <td className="p-3">
+                            <select value={job.status} onChange={(e) => updateJobStatus(job.id, e.target.value)} className="border p-1.5 rounded text-xs bg-slate-50 font-semibold">
+                              <option value="Aktif">Aktif</option>
+                              <option value="Tidak Aktif">Tidak Aktif</option>
+                              <option value="Menunggu Persetujuan">Menunggu Persetujuan</option>
+                              <option value="Ditolak">Ditolak</option>
+                            </select>
+                          </td>
                           <td className="p-3"><button onClick={() => toggleFeatured(job.id, isFeatured)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${isFeatured ? 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300'}`}><span>{isFeatured ? '★ Premium' : '☆ Standar'}</span></button></td>
                           <td className="p-3 text-right">
                             <div className="flex flex-wrap justify-end gap-1.5 min-w-[200px]">
@@ -686,6 +896,7 @@ const SuperAdminDashboard = ({ jobs, setJobs, cvOrders, setCvOrders, onLogout, u
           </div>
         )}
       </div>
+
       {editingJob && (
         <EditJobModal
           job={editingJob}
@@ -770,8 +981,23 @@ export default function JobBoard() {
       <div>
         <Navbar onOpenPostJob={() => setIsPostJobOpen(true)} onOpenAdminLogin={() => setIsAdminLoginOpen(true)} isAdmin={false} />
         <Hero searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedTag={selectedTag} setSelectedTag={setSelectedTag} />
-        <StatsBar totalJobs={jobs.filter(j => j.status === 'Aktif').length} />
-        <JobFeed jobs={jobs} onSelectJob={setSelectedJob} searchTerm={searchTerm} selectedTag={selectedTag} />
+        <StatsBar
+          totalJobs={jobs.filter(j => j.status === 'Aktif').length}
+          totalCompanies={new Set(jobs.map(job => (job.company || '').trim()).filter(Boolean)).size}
+          totalApplicants={jobs.reduce((sum, job) => sum + (job.applicantsCount || 0), 0)}
+          premiumJobsCount={jobs.filter(j => (j.featured || j.is_featured) && j.status === 'Aktif').length}
+        />
+        <JobFeed
+          jobs={jobs}
+          onSelectJob={setSelectedJob}
+          searchTerm={searchTerm}
+          selectedTag={selectedTag}
+          loading={loading}
+          onResetFilters={() => {
+            setSearchTerm('');
+            setSelectedTag('');
+          }}
+        />
         <CVServicePromo onOrderCV={() => setIsOrderCVOpen(true)} />
         <CommunitySection />
       </div>
