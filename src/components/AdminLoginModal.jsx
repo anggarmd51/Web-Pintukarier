@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
 
-export default function AdminLoginModal({ isOpen, onClose, onSuccess }) {
+export default function AdminLoginModal({ isOpen, onClose, onSuccess, login }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -13,16 +12,11 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess }) {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      if (!login) throw new Error('Login function not available');
 
-      if (error) throw error;
+      await login({ email, password });
 
-      // Langsung panggil fungsi sukses tanpa alert agar modal langsung menutup
       if (onSuccess) onSuccess();
-      
     } catch (err) {
       alert('Gagal login: ' + err.message);
     } finally {

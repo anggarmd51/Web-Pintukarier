@@ -1,47 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import React, { useState } from 'react';
+import useJobs from '../hooks/useJobs';
+import useJobActions from '../hooks/useJobActions';
+import useJobForm from '../hooks/useJobForm';
 
 export default function JobBoard() {
-  const [jobs, setJobs] = useState([]);
+  const { jobs, loading, setJobs } = useJobs();
+  const { createJob, updateJob, updateJobStatus, toggleFeatured, deleteJob } = useJobActions({ jobs, setJobs });
+  const { submitJobApplication } = useJobForm();
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchJobs();
-  }, []);
-
-  async function fetchJobs() {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase.from('jobs').select('*');
-      if (error) throw error;
-      setJobs(data || []);
-    } catch (error) {
-      console.error('Gagal memuat data lowongan:', error.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Fungsi penanganan tombol lamar berdasarkan tipe (whatsapp, email, gform)
   const handleApply = (job) => {
-    const { applyType, applyTarget, title, company } = job;
-    
-    if (!applyType || !applyTarget) {
-      alert(`Informasi lamaran untuk posisi ${title} belum tersedia.`);
-      return;
-    }
+    const result = submitJobApplication(job);
 
-    if (applyType.toLowerCase() === 'whatsapp') {
-      const message = encodeURIComponent(`Halo, saya ingin melamar untuk posisi *${title}* di *${company}* yang saya temukan di Pintukarier.id.`);
-      window.open(`https://wa.me/${applyTarget}?text=${message}`, '_blank');
-    } else if (applyType.toLowerCase() === 'email') {
-      const subject = encodeURIComponent(`Lamaran Pekerjaan - ${title} - ${company}`);
-      window.location.href = `mailto:${applyTarget}?subject=${subject}`;
-    } else if (applyType.toLowerCase() === 'gform' || applyType.toLowerCase() === 'link') {
-      window.open(applyTarget, '_blank');
-    } else {
-      alert(`Silakan hubungi kontak berikut: ${applyTarget}`);
+    if (!result.ok && result.message) {
+      alert(result.message);
     }
   };
 

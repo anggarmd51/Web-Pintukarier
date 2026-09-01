@@ -1,27 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import JobBoard from './components/JobBoard';
 import AdminLoginModal from './components/AdminLoginModal';
+import useAuth from './hooks/useAuth';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isLoggedIn, login, logout } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  useEffect(() => {
-    const adminStatus = localStorage.getItem('isAdminLoggedIn');
-    if (adminStatus === 'true') {
-      setIsLoggedIn(true);
-    }
-  }, []);
-
-  const handleLoginSuccess = () => {
-    localStorage.setItem('isAdminLoggedIn', 'true');
-    setIsLoggedIn(true);
+  const handleLoginSuccess = async () => {
     setShowLoginModal(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAdminLoggedIn');
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Gagal logout:', error.message);
+    }
   };
 
   return (
@@ -55,6 +50,7 @@ export default function App() {
           isOpen={showLoginModal}
           onClose={() => setShowLoginModal(false)}
           onSuccess={handleLoginSuccess}
+          login={login}
         />
       )}
     </div>
