@@ -114,11 +114,11 @@ const Navbar = ({ onOpenPostJob, onOpenAdminLogin, isAdmin }) => {
     <nav className="bg-white shadow-sm sticky top-0 z-40 border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
-            <div className="flex items-center cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <img src="/logo.png" alt="Logo Pintukarier" className="h-8 sm:h-9 w-auto object-contain" />
-              <div className="bg-navy px-3 sm:px-4 py-2 rounded-xl shadow-md transition-transform group-hover:scale-[1.02]">
-                <span className="text-[10px] sm:text-xs lg:text-sm font-bold text-white tracking-[0.18em] sm:tracking-[0.25em] uppercase whitespace-nowrap">PINTU KARIER.ID</span>
+          <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <img src="/logo.png" alt="Logo Pintukarier" className="h-10 w-auto object-contain" />
+              <div className="flex items-center bg-navy px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl shadow-sm ring-1 ring-slate-200/10">
+                <span className="antialiased text-[10px] sm:text-xs lg:text-sm font-bold text-white tracking-[0.18em] sm:tracking-[0.24em] uppercase whitespace-nowrap">PINTU KARIER.ID</span>
               </div>
             </div>
 
@@ -253,41 +253,6 @@ const StatsBar = ({ totalJobs, totalCompanies, totalApplicants }) => (
   </div>
 );
 
-const getCompanyInitials = (company = '') =>
-  company
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join('') || 'P';
-
-const JobLogo = ({ company, logoUrl }) => {
-  const [hasError, setHasError] = useState(false);
-  const [resolvedUrl, setResolvedUrl] = useState(logoUrl || '');
-
-  useEffect(() => {
-    setHasError(false);
-    setResolvedUrl(logoUrl || '');
-  }, [company, logoUrl]);
-
-  if (!resolvedUrl || hasError) {
-    return (
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-teal/20 to-sky-100 text-sm font-extrabold text-navy shadow-inner ring-1 ring-slate-200">
-        {getCompanyInitials(company)}
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={resolvedUrl}
-      alt={`${company} logo`}
-      onError={() => setHasError(true)}
-      className="h-12 w-12 rounded-xl object-cover shadow-sm ring-1 ring-slate-200 bg-white"
-    />
-  );
-};
-
 const JobSkeleton = () => (
   <div className="animate-pulse rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
     <div className="flex items-center justify-between mb-4">
@@ -368,7 +333,6 @@ const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag, onResetFilters, l
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {visibleJobs.map((job, index) => {
               const isFeatured = job.featured || job.is_featured || false;
-              const logoUrl = job.logo || job.logo_url || job.companyLogo || '';
               return (
                 <div
                   key={job.id}
@@ -379,15 +343,16 @@ const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag, onResetFilters, l
                   {isFeatured && (
                     <span className="absolute -top-3 right-4 bg-teal text-navy text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">🔥 Featured</span>
                   )}
-                  <div className="mb-4 flex items-center gap-3">
-                    <JobLogo company={job.company} logoUrl={logoUrl} />
+
+                  <div className="mb-4 flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <span className="inline-flex rounded bg-teal/10 px-2.5 py-1 text-[10px] font-bold text-teal sm:text-xs">{job.category}</span>
+                      <h3 className="mb-1 text-base font-bold text-navy transition group-hover:text-teal sm:text-lg">{job.title}</h3>
+                      <p className="text-xs font-semibold text-slate-600 sm:text-sm">{job.company}</p>
                     </div>
+                    <span className="inline-flex shrink-0 rounded bg-teal/10 px-2.5 py-1 text-[10px] font-bold text-teal sm:text-xs">{job.category}</span>
                   </div>
+
                   <div>
-                    <h3 className="mb-1 text-base font-bold text-navy transition group-hover:text-teal sm:text-lg">{job.title}</h3>
-                    <p className="mb-3 text-xs font-semibold text-slate-600 sm:text-sm">{job.company}</p>
                     <p className="mb-4 text-[11px] text-slate-500 line-clamp-2 sm:text-xs">{job.desc}</p>
                   </div>
                   <div>
