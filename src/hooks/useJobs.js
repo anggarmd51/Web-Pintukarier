@@ -8,22 +8,16 @@ export default function useJobs() {
   const fetchJobs = async () => {
     try {
       setLoading(true);
+
       const { data, error } = await supabase
         .from('jobs')
         .select('*')
-        .eq('status', 'Aktif')
         .order('featured', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const sortedJobs = (data || []).sort((a, b) => {
-        const premiumA = a.featured || a.is_featured || false;
-        const premiumB = b.featured || b.is_featured || false;
-        return Number(premiumB) - Number(premiumA);
-      });
-
-      setJobs(sortedJobs);
+      setJobs(data || []);
     } catch (error) {
       console.error('Gagal memuat data lowongan:', error.message);
     } finally {

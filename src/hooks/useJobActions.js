@@ -1,66 +1,34 @@
-import { toast } from 'react-hot-toast';
+﻿import { toast } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 
 const sortJobsByFeatured = (items = []) =>
-  [...items].sort((a, b) => Number(b.featured || b.is_featured || false) - Number(a.featured || a.is_featured || false));
+  [...items].sort((a, b) => Number(b.featured || false) - Number(a.featured || false));
 
 const isRlsError = (error) => {
   const message = String(error?.message || '').toLowerCase();
   return error?.code === '42501' || message.includes('row-level security') || message.includes('permission denied for table');
 };
 
-const buildFeaturedPayload = (value, fieldState = { hasFeatured: true, hasIsFeatured: true }) => {
-  const payload = {};
-
-  if (fieldState.hasFeatured) payload.featured = value;
-  if (fieldState.hasIsFeatured) payload.is_featured = value;
-
-  return payload;
-};
-
-const detectFeaturedColumns = async () => {
-  const state = { hasFeatured: false, hasIsFeatured: false };
-
-  try {
-    const { error: featuredError } = await supabase.from('jobs').select('featured').limit(1);
-    if (!featuredError) state.hasFeatured = true;
-  } catch (error) {
-    console.warn('featured column not available:', error?.message || error);
-  }
-
-  try {
-    const { error: isFeaturedError } = await supabase.from('jobs').select('is_featured').limit(1);
-    if (!isFeaturedError) state.hasIsFeatured = true;
-  } catch (error) {
-    console.warn('is_featured column not available:', error?.message || error);
-  }
-
-  return state;
-};
-
 export default function useJobActions({ jobs, setJobs }) {
   const createJob = async (newJob) => {
     try {
-      const featureState = await detectFeaturedColumns();
       const payload = {
         ...newJob,
-        status: newJob.status || 'Menunggu Persetujuan',
+        status: 'Menunggu Persetujuan',
         applicantsCount: Number(newJob.applicantsCount || 0),
+        featured: Boolean(newJob.featured),
       };
-
-      const featuredValue = Boolean(newJob.featured || newJob.is_featured);
-      Object.assign(payload, buildFeaturedPayload(featuredValue, featureState));
 
       let insertedJob = payload;
 
       try {
-        const { data, error } = await supabase.from('jobs').insert([payload]).select('*');
+        const { data, error } = await supabase.from('jobs').insert([payload]).select('*').single();
 
         if (error) {
           throw error;
         }
 
-        insertedJob = data?.[0] || payload;
+        insertedJob = data || payload;
       } catch (error) {
         const fallbackId = Date.now();
         insertedJob = {
@@ -76,6 +44,7 @@ export default function useJobActions({ jobs, setJobs }) {
         }
       }
 
+      // Masukkan ke state agar langsung tampil di Manajemen Loker Admin
       setJobs((prevJobs) => sortJobsByFeatured([insertedJob, ...prevJobs]));
       toast.success('Lowongan berhasil dikirim dan menunggu persetujuan admin.');
       return insertedJob;
@@ -155,17 +124,9 @@ export default function useJobActions({ jobs, setJobs }) {
     const newVal = !currentVal;
 
     try {
-      const columnState = await detectFeaturedColumns();
-      const payload = buildFeaturedPayload(newVal, columnState);
-
-      if (Object.keys(payload).length === 0) {
-        toast.error('Skema tabel jobs tidak memiliki kolom featured/is_featured yang valid. Cek migrasi database Supabase.');
-        return false;
-      }
-
       const { error } = await supabase
         .from('jobs')
-        .update(payload)
+        .update({ featured: newVal })
         .eq('id', id);
 
       if (error) throw error;
@@ -173,7 +134,7 @@ export default function useJobActions({ jobs, setJobs }) {
       setJobs((prevJobs) =>
         sortJobsByFeatured(
           prevJobs.map((job) =>
-            job.id === id ? { ...job, featured: newVal, is_featured: newVal } : job
+            job.id === id ? { ...job, featured: newVal } : job
           )
         )
       );
@@ -185,7 +146,7 @@ export default function useJobActions({ jobs, setJobs }) {
       setJobs((prevJobs) =>
         sortJobsByFeatured(
           prevJobs.map((job) =>
-            job.id === id ? { ...job, featured: newVal, is_featured: newVal } : job
+            job.id === id ? { ...job, featured: newVal } : job
           )
         )
       );
