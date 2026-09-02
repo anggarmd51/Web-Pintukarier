@@ -116,7 +116,7 @@ const Navbar = ({ onOpenPostJob, onOpenAdminLogin, isAdmin }) => {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
             <div className="flex items-center cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <img src="./IMG-20260728-WA0012 (1).png" alt="Logo Pintukarier" className="h-8 sm:h-9 w-auto object-contain" />
+              <img src="/logo.png" alt="Logo Pintukarier" className="h-8 sm:h-9 w-auto object-contain" />
               <div className="bg-navy px-3 sm:px-4 py-2 rounded-xl shadow-md transition-transform group-hover:scale-[1.02]">
                 <span className="text-[10px] sm:text-xs lg:text-sm font-bold text-white tracking-[0.18em] sm:tracking-[0.25em] uppercase whitespace-nowrap">PINTU KARIER.ID</span>
               </div>
