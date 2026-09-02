@@ -1,4 +1,4 @@
-﻿import { toast } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 
 const sortJobsByFeatured = (items = []) =>
@@ -10,10 +10,21 @@ const isRlsError = (error) => {
 };
 
 export default function useJobActions({ jobs, setJobs }) {
+  const updateLocalJobs = (updater) => {
+    setJobs((prevJobs) => {
+      const nextJobs = typeof updater === 'function' ? updater(prevJobs) : updater;
+      try {
+        localStorage.setItem('pintukarier_jobs_cache', JSON.stringify(nextJobs));
+      } catch (e) {}
+      return nextJobs;
+    });
+  };
+
   const createJob = async (newJob) => {
     try {
       const payload = {
         ...newJob,
+        created_at: newJob.created_at || new Date().toISOString(),
         status: 'Menunggu Persetujuan',
         applicantsCount: Number(newJob.applicantsCount || 0),
         featured: Boolean(newJob.featured),
@@ -45,7 +56,7 @@ export default function useJobActions({ jobs, setJobs }) {
       }
 
       // Masukkan ke state agar langsung tampil di Manajemen Loker Admin
-      setJobs((prevJobs) => sortJobsByFeatured([insertedJob, ...prevJobs]));
+      updateLocalJobs((prevJobs) => sortJobsByFeatured([insertedJob, ...prevJobs]));
       toast.success('Lowongan berhasil dikirim dan menunggu persetujuan admin.');
       return insertedJob;
     } catch (error) {
@@ -66,7 +77,7 @@ export default function useJobActions({ jobs, setJobs }) {
 
       if (error) throw error;
 
-      setJobs((prevJobs) =>
+      updateLocalJobs((prevJobs) =>
         sortJobsByFeatured(
           prevJobs.map((job) => (job.id === updatedJob.id ? updatedJob : job))
         )
@@ -78,7 +89,7 @@ export default function useJobActions({ jobs, setJobs }) {
       if (isRlsError(error)) {
         toast.error('Akses UPDATE dibatasi oleh RLS Supabase. Pastikan akun admin terautentikasi dan policy UPDATE sudah diizinkan.');
       }
-      setJobs((prevJobs) =>
+      updateLocalJobs((prevJobs) =>
         sortJobsByFeatured(
           prevJobs.map((job) => (job.id === updatedJob.id ? updatedJob : job))
         )
@@ -96,7 +107,7 @@ export default function useJobActions({ jobs, setJobs }) {
 
       if (error) throw error;
 
-      setJobs((prevJobs) =>
+      updateLocalJobs((prevJobs) =>
         prevJobs.map((job) =>
           job.id === id ? { ...job, status: newStatus } : job
         )
@@ -106,7 +117,7 @@ export default function useJobActions({ jobs, setJobs }) {
       return true;
     } catch (error) {
       console.error('Gagal mengubah status lowongan:', error.message);
-      setJobs((prevJobs) =>
+      updateLocalJobs((prevJobs) =>
         prevJobs.map((job) =>
           job.id === id ? { ...job, status: newStatus } : job
         )
@@ -131,7 +142,7 @@ export default function useJobActions({ jobs, setJobs }) {
 
       if (error) throw error;
 
-      setJobs((prevJobs) =>
+      updateLocalJobs((prevJobs) =>
         sortJobsByFeatured(
           prevJobs.map((job) =>
             job.id === id ? { ...job, featured: newVal } : job
@@ -143,7 +154,7 @@ export default function useJobActions({ jobs, setJobs }) {
       return true;
     } catch (error) {
       console.error('Gagal mengubah status premium lowongan:', error.message);
-      setJobs((prevJobs) =>
+      updateLocalJobs((prevJobs) =>
         sortJobsByFeatured(
           prevJobs.map((job) =>
             job.id === id ? { ...job, featured: newVal } : job
@@ -165,7 +176,7 @@ export default function useJobActions({ jobs, setJobs }) {
 
       if (error) throw error;
 
-      setJobs((prevJobs) => prevJobs.filter((job) => job.id !== id));
+      updateLocalJobs((prevJobs) => prevJobs.filter((job) => job.id !== id));
 
       return true;
     } catch (error) {

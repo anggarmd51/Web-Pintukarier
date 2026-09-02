@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 export default function AdminLoginModal({ isOpen, onClose, onSuccess, login }) {
   const [email, setEmail] = useState('');
@@ -16,9 +17,10 @@ export default function AdminLoginModal({ isOpen, onClose, onSuccess, login }) {
 
       await login({ email, password });
 
+      toast.success('Berhasil masuk sebagai Superadmin!');
       if (onSuccess) onSuccess();
     } catch (err) {
-      alert('Gagal login: ' + err.message);
+      toast.error('Gagal login: ' + (err.message || 'Kredensial tidak valid'));
     } finally {
       setLoading(false);
     }
