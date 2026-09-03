@@ -19,15 +19,8 @@ const normalizeJobs = (items = []) => {
 };
 
 export default function useJobs() {
-  const [jobs, setJobs] = useState(() => {
-    try {
-      const cached = localStorage.getItem('pintukarier_jobs_cache');
-      return normalizeJobs(cached ? JSON.parse(cached) : defaultJobs);
-    } catch {
-      return normalizeJobs(defaultJobs);
-    }
-  });
-  const [loading, setLoading] = useState(false);
+  const [jobs, setJobs] = useState(() => normalizeJobs(defaultJobs));
+  const [loading, setLoading] = useState(true);
 
   const fetchJobs = async () => {
     try {
@@ -44,13 +37,12 @@ export default function useJobs() {
       if (data && data.length > 0) {
         const normalized = normalizeJobs(data);
         setJobs(normalized);
-        localStorage.setItem('pintukarier_jobs_cache', JSON.stringify(normalized));
       } else {
-        setJobs((prev) => (prev && prev.length > 0 ? normalizeJobs(prev) : normalizeJobs(defaultJobs)));
+        setJobs(normalizeJobs(defaultJobs));
       }
     } catch (error) {
-      console.warn('Gagal memuat data lowongan dari Supabase, menggunakan data fallback:', error.message);
-      setJobs((prev) => (prev && prev.length > 0 ? normalizeJobs(prev) : normalizeJobs(defaultJobs)));
+      console.warn('Gagal memuat data lowongan dari Supabase, menggunakan data default:', error.message);
+      setJobs(normalizeJobs(defaultJobs));
     } finally {
       setLoading(false);
     }

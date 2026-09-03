@@ -13,9 +13,6 @@ export default function useJobActions({ jobs, setJobs }) {
   const updateLocalJobs = (updater) => {
     setJobs((prevJobs) => {
       const nextJobs = typeof updater === 'function' ? updater(prevJobs) : updater;
-      try {
-        localStorage.setItem('pintukarier_jobs_cache', JSON.stringify(nextJobs));
-      } catch (e) {}
       return nextJobs;
     });
   };
@@ -177,7 +174,7 @@ export default function useJobActions({ jobs, setJobs }) {
       if (error) throw error;
 
       updateLocalJobs((prevJobs) => prevJobs.filter((job) => job.id !== id));
-
+      toast.success('Lowongan berhasil dihapus dari sistem.');
       return true;
     } catch (error) {
       console.error('Gagal menghapus lowongan:', error.message);

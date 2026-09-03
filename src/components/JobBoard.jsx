@@ -1,12 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, Facebook, Instagram, Linkedin, Music2, Search, SearchX } from 'lucide-react';
+import { Calendar, Facebook, Instagram, Linkedin, Moon, Music2, Search, SearchX, Sun } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useAuth from '../hooks/useAuth';
 import useJobs from '../hooks/useJobs';
 import useJobActions from '../hooks/useJobActions';
 import useJobForm from '../hooks/useJobForm';
-import useCVOrder from '../hooks/useCVOrder';
+import useCVOrders from '../hooks/useCVOrders';
+import useSiteStats from '../hooks/useSiteStats';
+import useDarkMode from '../hooks/useDarkMode';
 import RequirementsInput, { parseRequirements, formatRequirementsToText } from './RequirementsInput';
+import { JobFeedSkeleton } from './LoadingSkeleton';
+import JobPostingSchema from './JobPostingSchema';
+import QuickShareButton from './QuickShareButton';
 
 const defaultJobs = [
   {
@@ -144,7 +149,7 @@ const updateOpenGraphMeta = (job = null) => {
   setMetaTag('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
 };
 
-const Navbar = ({ onOpenPostJob, onOpenAdminLogin, isAdmin }) => {
+const Navbar = ({ onOpenPostJob, onOpenAdminLogin, isAdmin, isDark, toggleDarkMode }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleNavClick = (callback) => {
@@ -153,7 +158,7 @@ const Navbar = ({ onOpenPostJob, onOpenAdminLogin, isAdmin }) => {
   };
 
   return (
-    <nav className="bg-white shadow-xs sticky top-0 z-40 border-b border-slate-100">
+    <nav className="bg-white dark:bg-slate-900 shadow-xs sticky top-0 z-40 border-b border-slate-100 dark:border-slate-800 transition-colors">
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-2.5 sm:py-3">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3">
@@ -164,38 +169,64 @@ const Navbar = ({ onOpenPostJob, onOpenAdminLogin, isAdmin }) => {
               </div>
             </div>
 
-            <button
-              type="button"
-              aria-label="Toggle menu"
-              aria-expanded={isOpen}
-              onClick={() => setIsOpen((prev) => !prev)}
-              className="md:hidden flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 shadow-xs active:bg-slate-100 transition cursor-pointer"
-            >
-              <span className="flex flex-col gap-1.5">
-                <span className={`block h-0.5 w-5 rounded-full bg-slate-700 transition-all duration-300 ease-out ${isOpen ? 'translate-y-2 rotate-45' : ''}`} />
-                <span className={`block h-0.5 w-5 rounded-full bg-slate-700 transition-all duration-300 ease-out ${isOpen ? 'opacity-0' : 'opacity-100'}`} />
-                <span className={`block h-0.5 w-5 rounded-full bg-slate-700 transition-all duration-300 ease-out ${isOpen ? '-translate-y-2 -rotate-45' : ''}`} />
-              </span>
-            </button>
+            <div className="flex items-center gap-2 md:hidden">
+              {/* Tombol Cepat Mode Gelap di Mobile Navbar */}
+              <button
+                type="button"
+                aria-label={isDark ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'}
+                title={isDark ? 'Mode Terang' : 'Mode Gelap'}
+                onClick={toggleDarkMode}
+                className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-amber-400 shadow-xs active:scale-95 transition cursor-pointer"
+              >
+                {isDark ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-slate-600" />}
+              </button>
+
+              <button
+                type="button"
+                aria-label="Toggle menu"
+                aria-expanded={isOpen}
+                onClick={() => setIsOpen((prev) => !prev)}
+                className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-xs active:bg-slate-100 dark:active:bg-slate-700 transition cursor-pointer"
+              >
+                <span className="flex flex-col gap-1.5">
+                  <span className={`block h-0.5 w-5 rounded-full bg-slate-700 dark:bg-slate-300 transition-all duration-300 ease-out ${isOpen ? 'translate-y-2 rotate-45' : ''}`} />
+                  <span className={`block h-0.5 w-5 rounded-full bg-slate-700 dark:bg-slate-300 transition-all duration-300 ease-out ${isOpen ? 'opacity-0' : 'opacity-100'}`} />
+                  <span className={`block h-0.5 w-5 rounded-full bg-slate-700 dark:bg-slate-300 transition-all duration-300 ease-out ${isOpen ? '-translate-y-2 -rotate-45' : ''}`} />
+                </span>
+              </button>
+            </div>
           </div>
 
-          <div className="hidden md:flex space-x-4 lg:space-x-6 font-medium text-slate-600 items-center text-sm">
-            <a href="#jobs" className="hover:text-teal transition">Cari Kerja</a>
-            <a href="#cv-service" className="hover:text-teal transition">Buat CV ATS</a>
-            <a href="#community" className="hover:text-teal transition">Komunitas</a>
+          <div className="hidden md:flex space-x-3 lg:space-x-5 font-medium text-slate-600 dark:text-slate-300 items-center text-sm">
+            <a href="#jobs" className="hover:text-teal dark:hover:text-teal transition">Cari Kerja</a>
+            <a href="#cv-service" className="hover:text-teal dark:hover:text-teal transition">Buat CV ATS</a>
+            <a href="#community" className="hover:text-teal dark:hover:text-teal transition">Komunitas</a>
+
+            {/* Tombol Toggle Mode Gelap Desktop */}
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              aria-label={isDark ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'}
+              title={isDark ? 'Mode Terang' : 'Mode Gelap'}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer active:scale-95 text-xs font-semibold"
+            >
+              {isDark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-600" />}
+              <span>{isDark ? 'Terang' : 'Gelap'}</span>
+            </button>
+
             <button onClick={onOpenPostJob} className="bg-teal hover:bg-teal/90 text-navy font-bold px-4 py-2.5 rounded-xl shadow-xs transition text-sm cursor-pointer active:scale-98">Pasang Lowongan</button>
-            <button onClick={onOpenAdminLogin} className="border border-slate-300 hover:border-teal text-slate-700 hover:text-teal px-3.5 py-2.5 rounded-xl font-medium transition text-sm cursor-pointer active:scale-98">{isAdmin ? 'Dashboard Admin' : '🔑 Login'}</button>
+            <button onClick={onOpenAdminLogin} className="border border-slate-300 dark:border-slate-700 hover:border-teal text-slate-700 dark:text-slate-200 hover:text-teal px-3.5 py-2.5 rounded-xl font-medium transition text-sm cursor-pointer active:scale-98">{isAdmin ? 'Dashboard Admin' : '🔑 Login'}</button>
           </div>
         </div>
 
         <div
           className={`md:hidden overflow-hidden transition-all duration-300 ease-out ${
             isOpen
-              ? 'mt-2.5 max-h-96 opacity-100 visible rounded-2xl border border-slate-200 bg-white shadow-xl'
+              ? 'mt-2.5 max-h-96 opacity-100 visible rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl'
               : 'max-h-0 opacity-0 invisible mt-0 border-0'
           }`}
         >
-          <div className="flex flex-col divide-y divide-slate-100 p-1.5">
+          <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800 p-1.5">
             {[
               { href: '#jobs', label: '🔍 Cari Kerja' },
               { href: '#cv-service', label: '📄 Buat CV ATS' },
@@ -205,7 +236,7 @@ const Navbar = ({ onOpenPostJob, onOpenAdminLogin, isAdmin }) => {
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`px-4 py-3.5 text-sm font-medium text-slate-700 transition-all duration-300 ease-out hover:bg-slate-50 active:bg-slate-100 rounded-lg ${
+                className={`px-4 py-3.5 text-sm font-medium text-slate-700 dark:text-slate-200 transition-all duration-300 ease-out hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100 rounded-lg ${
                   isOpen ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0'
                 }`}
                 style={{ transitionDelay: isOpen ? `${index * 60}ms` : '0ms' }}
@@ -224,7 +255,7 @@ const Navbar = ({ onOpenPostJob, onOpenAdminLogin, isAdmin }) => {
             </button>
             <button
               onClick={() => handleNavClick(onOpenAdminLogin)}
-              className={`mt-1 px-4 py-3.5 text-left text-sm font-medium text-slate-700 transition-all duration-300 ease-out hover:bg-slate-50 active:bg-slate-100 rounded-xl cursor-pointer ${
+              className={`mt-1 px-4 py-3.5 text-left text-sm font-medium text-slate-700 dark:text-slate-200 transition-all duration-300 ease-out hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100 rounded-xl cursor-pointer ${
                 isOpen ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0'
               }`}
               style={{ transitionDelay: isOpen ? '220ms' : '0ms' }}
@@ -286,45 +317,24 @@ const Hero = ({ searchTerm, setSearchTerm, selectedTag, setSelectedTag }) => {
 };
 
 const StatsBar = ({ totalJobs, totalCompanies, totalApplicants }) => (
-  <div className="bg-white border-b border-slate-100 py-6 sm:py-8 shadow-xs">
+  <div className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 py-6 sm:py-8 shadow-xs transition-colors">
     <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-center">
-      <div className="bg-slate-50/70 sm:bg-transparent p-3 sm:p-2 rounded-xl border border-slate-100 sm:border-0">
-        <div className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-navy">{totalJobs}+</div>
-        <div className="text-slate-500 text-xs sm:text-sm mt-0.5">Lowongan Aktif</div>
+      <div className="bg-slate-50/70 dark:bg-slate-800/80 sm:bg-transparent p-3 sm:p-2 rounded-xl border border-slate-100 dark:border-slate-800 sm:border-0">
+        <div className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-navy dark:text-teal">{totalJobs}+</div>
+        <div className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5">Lowongan Aktif</div>
       </div>
-      <div className="bg-slate-50/70 sm:bg-transparent p-3 sm:p-2 rounded-xl border border-slate-100 sm:border-0">
-        <div className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-navy">{totalCompanies}+</div>
-        <div className="text-slate-500 text-xs sm:text-sm mt-0.5">Perusahaan Mitra</div>
+      <div className="bg-slate-50/70 dark:bg-slate-800/80 sm:bg-transparent p-3 sm:p-2 rounded-xl border border-slate-100 dark:border-slate-800 sm:border-0">
+        <div className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-navy dark:text-teal">{totalCompanies}+</div>
+        <div className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5">Perusahaan Mitra</div>
       </div>
-      <div className="bg-slate-50/70 sm:bg-transparent p-3 sm:p-2 rounded-xl border border-slate-100 sm:border-0">
-        <div className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-navy">{totalApplicants}+</div>
-        <div className="text-slate-500 text-xs sm:text-sm mt-0.5">Pencari Kerja Aktif</div>
+      <div className="bg-slate-50/70 dark:bg-slate-800/80 sm:bg-transparent p-3 sm:p-2 rounded-xl border border-slate-100 dark:border-slate-800 sm:border-0">
+        <div className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-navy dark:text-teal">{totalApplicants}+</div>
+        <div className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5">Pencari Kerja Aktif</div>
       </div>
-      <div className="bg-slate-50/70 sm:bg-transparent p-3 sm:p-2 rounded-xl border border-slate-100 sm:border-0">
-        <div className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-navy">95%</div>
-        <div className="text-slate-500 text-xs sm:text-sm mt-0.5">Tingkat Kepuasan CV</div>
+      <div className="bg-slate-50/70 dark:bg-slate-800/80 sm:bg-transparent p-3 sm:p-2 rounded-xl border border-slate-100 dark:border-slate-800 sm:border-0">
+        <div className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-navy dark:text-teal">95%</div>
+        <div className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5">Tingkat Kepuasan CV</div>
       </div>
-    </div>
-  </div>
-);
-
-const JobSkeleton = () => (
-  <div className="animate-pulse rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-    <div className="flex items-center justify-between mb-4">
-      <div className="h-8 w-20 rounded-full bg-slate-200" />
-      <div className="h-6 w-6 rounded-full bg-slate-200" />
-    </div>
-    <div className="h-5 w-2/3 rounded bg-slate-200 mb-2" />
-    <div className="h-4 w-1/2 rounded bg-slate-200 mb-4" />
-    <div className="space-y-2 mb-5">
-      <div className="h-3 w-full rounded bg-slate-200" />
-      <div className="h-3 w-5/6 rounded bg-slate-200" />
-      <div className="h-3 w-4/6 rounded bg-slate-200" />
-    </div>
-    <div className="h-10 w-full rounded-lg bg-slate-200 mb-3" />
-    <div className="flex items-center justify-between gap-3">
-      <div className="h-7 w-24 rounded-full bg-slate-200" />
-      <div className="h-7 w-20 rounded-full bg-slate-200" />
     </div>
   </div>
 );
@@ -360,28 +370,24 @@ const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag, onResetFilters, l
     <div id="jobs" className="py-10 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-end mb-6 sm:mb-8">
         <div>
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-navy">Lowongan Kerja Terbaru</h2>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1">Peluang karier pilihan untuk profesional Indonesia</p>
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-navy dark:text-white">Lowongan Kerja Terbaru</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">Peluang karier pilihan untuk profesional Indonesia</p>
         </div>
         <span className="inline-flex self-start sm:self-auto text-xs sm:text-sm font-semibold text-teal bg-teal/10 px-3 py-1 rounded-full">{filteredJobs.length} Lowongan Tersedia</span>
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <JobSkeleton key={index} />
-          ))}
-        </div>
+        <JobFeedSkeleton count={6} />
       ) : filteredJobs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-slate-300 py-12 sm:py-16 text-center shadow-sm px-4">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-500 shadow-inner ring-1 ring-slate-200">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 py-12 sm:py-16 text-center shadow-sm px-4">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 shadow-inner ring-1 ring-slate-200 dark:ring-slate-600">
             <SearchX className="h-8 w-8" />
           </div>
-          <h3 className="text-lg sm:text-xl font-bold text-navy">Lowongan tidak ditemukan</h3>
-          <p className="mt-2 text-xs sm:text-sm text-slate-500 max-w-md mx-auto">Belum ada hasil yang cocok dengan pencarian atau filter saat ini. Coba ubah kata kunci atau reset filter untuk melihat seluruh lowongan aktif.</p>
+          <h3 className="text-lg sm:text-xl font-bold text-navy dark:text-white">Lowongan tidak ditemukan</h3>
+          <p className="mt-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">Belum ada hasil yang cocok dengan pencarian atau filter saat ini. Coba ubah kata kunci atau reset filter untuk melihat seluruh lowongan aktif.</p>
           <button
             onClick={onResetFilters}
-            className="mt-5 inline-flex items-center justify-center rounded-xl bg-navy px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800"
+            className="mt-5 inline-flex items-center justify-center rounded-xl bg-navy dark:bg-teal dark:text-navy px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 dark:hover:bg-teal/90"
           >
             Reset Filter
           </button>
@@ -395,7 +401,7 @@ const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag, onResetFilters, l
                 <div
                   key={job.id}
                   onClick={() => onSelectJob(job)}
-                  className={`group relative flex cursor-pointer flex-col justify-between rounded-xl border bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg sm:p-6 ${isFeatured ? 'border-teal ring-1 ring-teal/50' : 'border-slate-200'}`}
+                  className={`group relative flex cursor-pointer flex-col justify-between rounded-xl border bg-white dark:bg-slate-800 p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg sm:p-6 ${isFeatured ? 'border-teal ring-1 ring-teal/50' : 'border-slate-200 dark:border-slate-700'}`}
                   style={{ animationDelay: `${index * 80}ms` }}
                 >
                   {isFeatured && (
@@ -404,25 +410,25 @@ const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag, onResetFilters, l
 
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <h3 className="mb-1 text-base font-bold text-navy transition group-hover:text-teal sm:text-lg">{job.title}</h3>
-                      <p className="text-xs font-semibold text-slate-600 sm:text-sm">{job.company}</p>
+                      <h3 className="mb-1 text-base font-bold text-navy dark:text-white transition group-hover:text-teal sm:text-lg">{job.title}</h3>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 sm:text-sm">{job.company}</p>
                     </div>
                     <span className="inline-flex shrink-0 rounded bg-teal/10 px-2.5 py-1 text-[10px] font-bold text-teal sm:text-xs">{job.category}</span>
                   </div>
 
                   <div>
-                    <p className="mb-4 text-[11px] text-slate-500 line-clamp-2 sm:text-xs">{job.desc}</p>
+                    <p className="mb-4 text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 sm:text-xs">{job.desc}</p>
                   </div>
                   <div>
-                    <div className="mb-3 flex justify-between gap-2 rounded bg-slate-50 p-2 text-[11px] font-semibold text-slate-700 sm:text-xs">
+                    <div className="mb-3 flex justify-between gap-2 rounded bg-slate-50 dark:bg-slate-700/50 p-2 text-[11px] font-semibold text-slate-700 dark:text-slate-200 sm:text-xs">
                       <span>Gaji:</span> <span className="text-right font-bold text-teal">{job.salary}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-2 text-[11px] sm:text-xs text-slate-600 mb-3">
-                      <span className="max-w-[60%] truncate rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{job.location}</span>
+                    <div className="flex items-center justify-between gap-2 text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 mb-3">
+                      <span className="max-w-[60%] truncate rounded-full bg-slate-100 dark:bg-slate-700 px-2.5 py-1 text-slate-600 dark:text-slate-300">{job.location}</span>
                       <span className="font-bold text-teal">{job.type}</span>
                     </div>
-                    <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-[11px] text-slate-400">
-                      <span className="inline-flex items-center gap-1.5 font-medium text-slate-500">
+                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700/70 pt-2.5 text-[11px] text-slate-400">
+                      <span className="inline-flex items-center gap-1.5 font-medium text-slate-500 dark:text-slate-400">
                         <Calendar className="h-3.5 w-3.5 text-teal shrink-0" />
                         <span>{formatJobDate(job.created_at || job.date)}</span>
                       </span>
@@ -440,7 +446,7 @@ const JobFeed = ({ jobs, onSelectJob, searchTerm, selectedTag, onResetFilters, l
             <div className="mt-8 text-center">
               <button
                 onClick={() => setVisibleCount((prev) => prev + 6)}
-                className="bg-navy hover:bg-navy/90 text-white font-bold px-5 sm:px-6 py-3 rounded-xl shadow transition w-full sm:w-auto"
+                className="bg-navy dark:bg-slate-800 hover:bg-navy/90 dark:hover:bg-slate-700 text-white font-bold px-5 sm:px-6 py-3 rounded-xl shadow transition w-full sm:w-auto border border-transparent dark:border-slate-700 cursor-pointer active:scale-98"
               >
                 Muat Lebih Banyak
               </button>
@@ -587,10 +593,10 @@ const JobDetailModal = ({ job, onClose, onApplyTrack }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative max-h-[92vh] sm:max-h-[90vh] overflow-y-auto border border-transparent dark:border-slate-800">
         <button
           onClick={onClose}
-          className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 h-9 w-9 sm:h-8 sm:w-8 rounded-full bg-slate-100 hover:bg-slate-200 active:bg-slate-300 flex items-center justify-center text-slate-500 hover:text-slate-800 transition font-bold text-base z-20 shadow-xs cursor-pointer"
+          className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 h-9 w-9 sm:h-8 sm:w-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:bg-slate-300 flex items-center justify-center text-slate-500 dark:text-slate-300 hover:text-slate-800 transition font-bold text-base z-20 shadow-xs cursor-pointer"
           title="Tutup Modal"
           aria-label="Tutup"
         >
@@ -603,29 +609,29 @@ const JobDetailModal = ({ job, onClose, onApplyTrack }) => {
               <span className="text-[10px] sm:text-xs font-extrabold text-navy bg-teal px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs">🔥 PREMIUM</span>
             )}
           </div>
-          <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-500 bg-slate-50 border border-slate-200/70 px-2.5 py-1 rounded-full shadow-xs">
+          <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700 px-2.5 py-1 rounded-full shadow-xs">
             <Calendar className="h-3.5 w-3.5 text-teal shrink-0" />
             <span>Dipasang: {formatJobDate(job.created_at || job.date)}</span>
           </span>
         </div>
-        <h2 className="text-xl sm:text-2xl font-bold text-navy mt-1 mb-1 leading-snug">{job.title}</h2>
-        <p className="text-slate-600 font-semibold mb-3 sm:mb-4 text-xs sm:text-sm md:text-base">{job.company} • {job.location}</p>
-        <div className="bg-slate-50 p-3 sm:p-4 rounded-xl mb-4 text-xs sm:text-sm space-y-2 border border-slate-100">
-          <div className="flex justify-between gap-3"><strong>Kisaran Gaji:</strong> <span className="text-teal font-bold text-right">{job.salary}</span></div>
-          <div className="flex justify-between gap-3"><strong>Tipe Pekerjaan:</strong> <span className="text-right">{job.type}</span></div>
+        <h2 className="text-xl sm:text-2xl font-bold text-navy dark:text-white mt-1 mb-1 leading-snug">{job.title}</h2>
+        <p className="text-slate-600 dark:text-slate-300 font-semibold mb-3 sm:mb-4 text-xs sm:text-sm md:text-base">{job.company} • {job.location}</p>
+        <div className="bg-slate-50 dark:bg-slate-800/80 p-3 sm:p-4 rounded-xl mb-4 text-xs sm:text-sm space-y-2 border border-slate-100 dark:border-slate-700">
+          <div className="flex justify-between gap-3 text-slate-700 dark:text-slate-200"><strong>Kisaran Gaji:</strong> <span className="text-teal font-bold text-right">{job.salary}</span></div>
+          <div className="flex justify-between gap-3 text-slate-700 dark:text-slate-200"><strong>Tipe Pekerjaan:</strong> <span className="text-right">{job.type}</span></div>
         </div>
-        <h3 className="font-bold text-navy mb-1.5 text-xs sm:text-sm md:text-base">Deskripsi Pekerjaan:</h3>
-        <p className="text-slate-600 text-xs sm:text-sm mb-4 leading-relaxed">{job.desc}</p>
+        <h3 className="font-bold text-navy dark:text-white mb-1.5 text-xs sm:text-sm md:text-base">Deskripsi Pekerjaan:</h3>
+        <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm mb-4 leading-relaxed">{job.desc}</p>
 
         {jobReqs && jobReqs.length > 0 && (
           <div className="mb-6">
-            <h3 className="font-bold text-navy mb-2 text-xs sm:text-sm md:text-base flex items-center justify-between">
+            <h3 className="font-bold text-navy dark:text-white mb-2 text-xs sm:text-sm md:text-base flex items-center justify-between">
               <span>Persyaratan / Kualifikasi:</span>
               <span className="text-[10px] sm:text-xs font-semibold text-teal bg-teal/10 px-2 py-0.5 rounded-full">
                 {jobReqs.length} Butir
               </span>
             </h3>
-            <ul className="space-y-2 text-slate-600 text-xs sm:text-sm bg-slate-50/80 p-3.5 sm:p-4 rounded-xl border border-slate-200/70">
+            <ul className="space-y-2 text-slate-600 dark:text-slate-300 text-xs sm:text-sm bg-slate-50/80 dark:bg-slate-800/60 p-3.5 sm:p-4 rounded-xl border border-slate-200/70 dark:border-slate-700">
               {jobReqs.map((req, idx) => (
                 <li key={idx} className="flex items-start gap-2.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-teal mt-1.5 shrink-0" />
@@ -635,6 +641,9 @@ const JobDetailModal = ({ job, onClose, onApplyTrack }) => {
             </ul>
           </div>
         )}
+
+        {/* Quick Share Button (WhatsApp, Telegram, LinkedIn, Copy Link) */}
+        <QuickShareButton job={job} className="mb-5" />
 
         <button onClick={handleApply} className={`${buttonClass} text-xs sm:text-sm md:text-base min-h-[46px]`}>
           Kirim Lamaran Sekarang ({job.applyType ? job.applyType.toUpperCase() : 'WEB'})
@@ -648,21 +657,25 @@ const OrderCVModal = ({ isOpen, onClose, onSubmitOrder }) => {
   const [name, setName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [packageType, setPackageType] = useState('Paket ATS Professional (Rp 99k)');
-  const { submitCVOrder } = useCVOrder();
+  const [submitting, setSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = submitCVOrder({ name, whatsapp, packageType });
-    if (!result.valid) {
-      toast.error(result.message);
-      return;
+    setSubmitting(true);
+    try {
+      const result = await onSubmitOrder({ name, whatsapp, packageType });
+      if (result && result.valid) {
+        setName('');
+        setWhatsapp('');
+        onClose();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
     }
-
-    onSubmitOrder(result.order);
-    toast.success(result.message);
-    onClose();
   };
 
   return (
@@ -680,7 +693,10 @@ const OrderCVModal = ({ isOpen, onClose, onSubmitOrder }) => {
           <div><label className="block font-semibold text-slate-700 mb-1">Nama Lengkap</label><input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full border border-slate-300 p-2.5 sm:p-3 rounded-xl focus:ring-2 focus:ring-teal outline-none" placeholder="Masukkan nama..." /></div>
           <div><label className="block font-semibold text-slate-700 mb-1">Nomor WhatsApp Aktif</label><input type="text" required value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full border border-slate-300 p-2.5 sm:p-3 rounded-xl focus:ring-2 focus:ring-teal outline-none" placeholder="Contoh: 08123456789" /></div>
           <div><label className="block font-semibold text-slate-700 mb-1">Pilih Paket Layanan</label><select value={packageType} onChange={e => setPackageType(e.target.value)} className="w-full border border-slate-300 p-2.5 sm:p-3 rounded-xl focus:ring-2 focus:ring-teal outline-none"><option>Paket ATS Professional (Rp 99k)</option><option>Paket Bundle CV + LinkedIn (Rp 149k)</option></select></div>
-          <button type="submit" className="w-full bg-teal hover:bg-teal/90 active:bg-teal/95 text-navy font-bold py-3.5 rounded-xl shadow-xs transition cursor-pointer min-h-[46px] active:scale-98 mt-2">Kirim Pesanan Sekarang</button>
+          <button type="submit" disabled={submitting} className="w-full bg-teal hover:bg-teal/90 active:bg-teal/95 disabled:opacity-60 text-navy font-bold py-3.5 rounded-xl shadow-xs transition cursor-pointer min-h-[46px] active:scale-98 mt-2 flex items-center justify-center gap-2">
+            {submitting && <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-navy border-t-transparent" />}
+            <span>{submitting ? 'Menyimpan ke Cloud...' : 'Kirim Pesanan Sekarang'}</span>
+          </button>
         </form>
       </div>
     </div>
@@ -920,17 +936,44 @@ const AdminLoginModal = ({ isOpen, onClose, onLoginSuccess, login }) => {
   );
 };
 
-const SuperAdminDashboard = ({ jobs, setJobs, cvOrders, setCvOrders, onLogout, updateJobStatus, toggleFeatured, deleteJob, saveEditedJob, onAddJob }) => {
+const SuperAdminDashboard = ({
+  jobs,
+  setJobs,
+  cvOrders,
+  loadingCVOrders,
+  fetchCVOrders,
+  updateCVStatus,
+  deleteCVOrder,
+  totalViews,
+  loadingStats,
+  isStatsLive,
+  fetchStats,
+  onLogout,
+  updateJobStatus,
+  toggleFeatured,
+  deleteJob,
+  saveEditedJob,
+  onAddJob,
+}) => {
   const [activeTab, setActiveTab] = useState('stats');
   const [editingJob, setEditingJob] = useState(null);
   const [isAddJobOpen, setIsAddJobOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, name, type: 'cv' | 'job' }
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const updateCVStatus = (id, newStatus) => {
-    setCvOrders(cvOrders.map(c => c.id === id ? { ...c, status: newStatus } : c));
-  };
-
-  const deleteCVOrder = (id) => {
-    if (confirm('Hapus pesanan CV ini?')) setCvOrders(cvOrders.filter(c => c.id !== id));
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
+    setIsDeleting(true);
+    try {
+      if (confirmDelete.type === 'cv') {
+        await deleteCVOrder(confirmDelete.id);
+      } else if (confirmDelete.type === 'job') {
+        await deleteJob(confirmDelete.id);
+      }
+    } finally {
+      setIsDeleting(false);
+      setConfirmDelete(null);
+    }
   };
 
   const activeJobsCount = jobs.filter(j => j.status === 'Aktif').length;
@@ -960,16 +1003,89 @@ const SuperAdminDashboard = ({ jobs, setJobs, cvOrders, setCvOrders, onLogout, u
       <div className="max-w-7xl mx-auto w-full p-3 sm:p-6 flex-1">
         {activeTab === 'stats' && (
           <div className="space-y-4 sm:space-y-6">
-            <h2 className="text-lg sm:text-xl font-bold text-navy">Statistik Utama Platform</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
-              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200"><div className="text-slate-500 text-xs sm:text-sm">Lowongan Aktif</div><div className="text-2xl sm:text-3xl font-extrabold text-navy mt-1">{activeJobsCount}</div></div>
-              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200"><div className="text-slate-500 text-xs sm:text-sm">Menunggu Review</div><div className="text-2xl sm:text-3xl font-extrabold text-amber-500 mt-1">{pendingJobsCount}</div></div>
-              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200"><div className="text-slate-500 text-xs sm:text-sm">Perusahaan Mitra</div><div className="text-2xl sm:text-3xl font-extrabold text-teal mt-1">{totalCompanies}</div></div>
-              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200"><div className="text-slate-500 text-xs sm:text-sm">Lowongan Premium</div><div className="text-2xl sm:text-3xl font-extrabold text-violet-600 mt-1">{premiumJobsCount}</div></div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-navy">Statistik Utama Platform</h2>
+                <div className="text-xs text-slate-500 mt-0.5">Ringkasan performa kunjungan dan aktivitas rekrutmen terkini.</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => fetchStats?.()}
+                disabled={loadingStats}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
+                title="Segarkan data dari Supabase site_stats"
+              >
+                <span className={loadingStats ? 'inline-block animate-spin' : ''}>🔄</span>
+                <span>{loadingStats ? 'Menyinkronkan...' : 'Segarkan Statistik'}</span>
+              </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mt-3 sm:mt-4">
-              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200"><div className="text-slate-500 text-xs sm:text-sm">Total Pelamar Masuk</div><div className="text-2xl sm:text-3xl font-extrabold text-navy mt-1">{totalApplicants}</div></div>
-              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200"><div className="text-slate-500 text-xs sm:text-sm">Total Pesanan Layanan CV</div><div className="text-2xl sm:text-3xl font-extrabold text-navy mt-1">{cvOrders.length}</div></div>
+
+            {/* Baris 1: Visitor Counter & Job Highlights */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+              {/* GLOBAL VISITOR COUNTER */}
+              <div className="bg-gradient-to-br from-white to-teal/5 p-4 sm:p-6 rounded-2xl shadow-xs border border-teal/30 hover:border-teal/50 transition relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <div className="text-slate-600 font-medium text-xs sm:text-sm">Total Kunjungan Web</div>
+                  <span
+                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      isStatsLive
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-teal/10 text-navy border-teal/30'
+                    }`}
+                    title="Terhubung ke Supabase tabel site_stats"
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${isStatsLive ? 'bg-emerald-500 animate-pulse' : 'bg-teal'}`} />
+                    {isStatsLive ? 'Live' : 'Cloud Sync'}
+                  </span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-navy mt-2 flex items-baseline gap-1.5">
+                  <span>{loadingStats ? '...' : (Number(totalViews) || 0).toLocaleString('id-ID')}</span>
+                  <span className="text-xs font-semibold text-slate-400">views</span>
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2 flex items-center gap-1">
+                  <span>🌐</span>
+                  <span>Tersinkronisasi dengan Supabase site_stats</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
+                <div className="text-slate-500 text-xs sm:text-sm">Lowongan Aktif</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-navy mt-2">{activeJobsCount}</div>
+                <div className="text-[11px] text-slate-400 mt-2">Ditayangkan ke pencari kerja</div>
+              </div>
+
+              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
+                <div className="text-slate-500 text-xs sm:text-sm">Menunggu Review</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-amber-500 mt-2">{pendingJobsCount}</div>
+                <div className="text-[11px] text-slate-400 mt-2">Menunggu persetujuan admin</div>
+              </div>
+
+              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
+                <div className="text-slate-500 text-xs sm:text-sm">Lowongan Premium</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-violet-600 mt-2">{premiumJobsCount}</div>
+                <div className="text-[11px] text-slate-400 mt-2">Disorot di posisi teratas</div>
+              </div>
+            </div>
+
+            {/* Baris 2: Pelamar, Mitra & Layanan CV */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mt-3 sm:mt-4">
+              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
+                <div className="text-slate-500 text-xs sm:text-sm">Perusahaan Mitra</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-teal mt-1">{totalCompanies}</div>
+                <div className="text-[11px] text-slate-400 mt-1.5">Pemberi kerja terdaftar</div>
+              </div>
+
+              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
+                <div className="text-slate-500 text-xs sm:text-sm">Total Pelamar Masuk</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-navy mt-1">{totalApplicants}</div>
+                <div className="text-[11px] text-slate-400 mt-1.5">Klik lamar WhatsApp / Email</div>
+              </div>
+
+              <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
+                <div className="text-slate-500 text-xs sm:text-sm">Total Pesanan Layanan CV</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-navy mt-1">{cvOrders.length}</div>
+                <div className="text-[11px] text-slate-400 mt-1.5">Tersimpan di Supabase cv_orders</div>
+              </div>
             </div>
           </div>
         )}
@@ -1054,33 +1170,107 @@ const SuperAdminDashboard = ({ jobs, setJobs, cvOrders, setCvOrders, onLogout, u
 
         {activeTab === 'cv' && (
           <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
-            <div className="p-4 border-b bg-slate-50 font-bold text-navy text-sm sm:text-base">Kelola Pesanan Layanan CV Klien & Status Pengerjaan</div>
+            <div className="p-4 border-b bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="font-bold text-navy text-sm sm:text-base">Kelola Pesanan Layanan CV Klien & Status Pengerjaan</div>
+                <div className="text-xs text-slate-500 mt-0.5">Tersinkronisasi otomatis dengan cloud Supabase (tabel cv_orders).</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => fetchCVOrders?.()}
+                disabled={loadingCVOrders}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
+                title="Sinkronisasi ulang data dari Supabase"
+              >
+                <span className={loadingCVOrders ? 'inline-block animate-spin' : ''}>🔄</span>
+                <span>{loadingCVOrders ? 'Memuat...' : 'Segarkan Data'}</span>
+              </button>
+            </div>
             <div className="sm:hidden px-4 py-2 bg-amber-50/60 border-b border-amber-200/50 text-[11px] text-amber-800">
               👉 Geser tabel ke samping untuk melihat seluruh detail pesanan
             </div>
             <div className="overflow-x-auto">
               <div className="inline-block min-w-full align-middle">
-                <table className="min-w-full text-left text-xs sm:text-sm whitespace-nowrap">
-                  <thead className="bg-slate-100 text-slate-600 border-b">
-                    <tr><th className="p-3">Nama Klien</th><th className="p-3">WhatsApp</th><th className="p-3">Paket</th><th className="p-3">Status Pengerjaan</th><th className="p-3 text-right">Aksi</th></tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {cvOrders.map(order => (
-                      <tr key={order.id} className="hover:bg-slate-50">
-                        <td className="p-3 font-bold text-navy">{order.name}<div className="text-xs text-slate-400">{order.date}</div></td>
-                        <td className="p-3"><a href={`https://wa.me/${order.whatsapp}`} target="_blank" className="text-teal font-medium hover:underline">{order.whatsapp}</a></td>
-                        <td className="p-3 whitespace-normal max-w-xs">{order.package}</td>
-                        <td className="p-3"><select value={order.status} onChange={(e) => updateCVStatus(order.id, e.target.value)} className="border p-1.5 rounded text-xs bg-slate-50 font-semibold cursor-pointer"><option>Menunggu Review</option><option>Sedang Dikerjakan</option><option>Selesai</option></select></td>
-                        <td className="p-3 text-right"><button onClick={() => deleteCVOrder(order.id)} className="text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 active:bg-rose-300 px-2.5 py-1.5 rounded font-bold transition cursor-pointer">Hapus</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {loadingCVOrders ? (
+                  <div className="p-8 text-center text-slate-500 text-xs sm:text-sm">
+                    <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-teal border-t-transparent mb-2" />
+                    <div>Memuat pesanan CV dari Supabase...</div>
+                  </div>
+                ) : cvOrders.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500 text-xs sm:text-sm">
+                    Belum ada pesanan CV klien di database Supabase.
+                  </div>
+                ) : (
+                  <table className="min-w-full text-left text-xs sm:text-sm whitespace-nowrap">
+                    <thead className="bg-slate-100 text-slate-600 border-b">
+                      <tr><th className="p-3">Nama Klien</th><th className="p-3">WhatsApp</th><th className="p-3">Paket</th><th className="p-3">Status Pengerjaan</th><th className="p-3 text-right">Aksi</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {cvOrders.map(order => (
+                        <tr key={order.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="p-3 font-bold text-navy">{order.name}<div className="text-xs text-slate-400 font-normal">{order.date || (order.created_at ? order.created_at.split('T')[0] : 'Baru')}</div></td>
+                          <td className="p-3"><a href={`https://wa.me/${order.whatsapp}`} target="_blank" rel="noreferrer" className="text-teal font-medium hover:underline">{order.whatsapp}</a></td>
+                          <td className="p-3 whitespace-normal max-w-xs">{order.package}</td>
+                          <td className="p-3">
+                            <select
+                              value={order.status}
+                              onChange={(e) => updateCVStatus(order.id, e.target.value)}
+                              className="border border-slate-300 p-1.5 rounded-lg text-xs bg-white font-semibold cursor-pointer focus:ring-2 focus:ring-teal outline-none"
+                            >
+                              <option value="Menunggu Review">Menunggu Review</option>
+                              <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
+                              <option value="Selesai">Selesai</option>
+                            </select>
+                          </td>
+                          <td className="p-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDelete({ id: order.id, name: order.name, type: 'cv' })}
+                              className="text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 active:bg-rose-300 px-3 py-1.5 rounded-lg font-bold transition cursor-pointer"
+                            >
+                              Hapus
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200">
+            <h3 className="text-base font-bold text-navy mb-2">Konfirmasi Hapus Permanen</h3>
+            <p className="text-xs sm:text-sm text-slate-600 mb-5 leading-relaxed">
+              Apakah Anda yakin ingin menghapus {confirmDelete.type === 'cv' ? 'pesanan CV' : 'lowongan kerja'} <strong>&quot;{confirmDelete.name}&quot;</strong> secara permanen dari Supabase? Data tidak dapat dipulihkan.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+              >
+                {isDeleting && <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />}
+                <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editingJob && (
         <EditJobModal
@@ -1114,16 +1304,33 @@ export default function JobBoard() {
   const { createJob, updateJobStatus, toggleFeatured, deleteJob, updateJob } = useJobActions({ jobs, setJobs });
   const { submitJobApplication } = useJobForm();
   const { isLoggedIn, login, logout } = useAuth();
+  const { isDark, toggleDarkMode } = useDarkMode();
+  const {
+    cvOrders,
+    loading: loadingCVOrders,
+    fetchCVOrders,
+    createCVOrder,
+    updateCVStatus,
+    deleteCVOrder,
+  } = useCVOrders();
+  const {
+    totalViews,
+    loading: loadingStats,
+    isLive: isStatsLive,
+    fetchStats,
+    recordPageView,
+  } = useSiteStats();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
   const [selectedJob, setSelectedJob] = useState(null);
   const [isPostJobOpen, setIsPostJobOpen] = useState(false);
   const [isOrderCVOpen, setIsOrderCVOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
-  const [cvOrders, setCvOrders] = useState(() => {
-    const saved = localStorage.getItem('pintukarier_cv_v3');
-    return saved ? JSON.parse(saved) : defaultCVOrders;
-  });
+
+  // Catat kunjungan ke Supabase site_stats saat halaman dimuat
+  useEffect(() => {
+    recordPageView();
+  }, [recordPageView]);
 
   // Filter lowongan khusus halaman publik: hanya yang berstatus 'Aktif'
   const publicJobs = useMemo(() => {
@@ -1132,10 +1339,6 @@ export default function JobBoard() {
     }
     return (jobs || []).filter((j) => j.status === 'Aktif');
   }, [activeJobs, jobs]);
-
-  useEffect(() => {
-    localStorage.setItem('pintukarier_cv_v3', JSON.stringify(cvOrders));
-  }, [cvOrders]);
 
   useEffect(() => {
     updateOpenGraphMeta(selectedJob);
@@ -1166,7 +1369,14 @@ export default function JobBoard() {
         jobs={jobs}
         setJobs={setJobs}
         cvOrders={cvOrders}
-        setCvOrders={setCvOrders}
+        loadingCVOrders={loadingCVOrders}
+        fetchCVOrders={fetchCVOrders}
+        updateCVStatus={updateCVStatus}
+        deleteCVOrder={deleteCVOrder}
+        totalViews={totalViews}
+        loadingStats={loadingStats}
+        isStatsLive={isStatsLive}
+        fetchStats={fetchStats}
         onLogout={async () => {
           try {
             await logout();
@@ -1184,9 +1394,18 @@ export default function JobBoard() {
   }
 
   return (
-    <div className="min-h-screen bg-light flex flex-col justify-between">
+    <div className="min-h-screen bg-light dark:bg-slate-950 flex flex-col justify-between transition-colors duration-200">
+      {/* Google Jobs Structured Data (Schema.org JobPosting) */}
+      <JobPostingSchema job={selectedJob} jobs={publicJobs} />
+
       <div>
-        <Navbar onOpenPostJob={() => setIsPostJobOpen(true)} onOpenAdminLogin={() => setIsAdminLoginOpen(true)} isAdmin={false} />
+        <Navbar
+          onOpenPostJob={() => setIsPostJobOpen(true)}
+          onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
+          isAdmin={false}
+          isDark={isDark}
+          toggleDarkMode={toggleDarkMode}
+        />
         <Hero searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedTag={selectedTag} setSelectedTag={setSelectedTag} />
         <StatsBar
           totalJobs={publicJobs.length}
@@ -1212,7 +1431,7 @@ export default function JobBoard() {
 
       <JobDetailModal job={selectedJob} onClose={() => setSelectedJob(null)} onApplyTrack={handleApplyTrack} />
       <PostJobModal isOpen={isPostJobOpen} onClose={() => setIsPostJobOpen(false)} onAddJob={handleAddJob} />
-      <OrderCVModal isOpen={isOrderCVOpen} onClose={() => setIsOrderCVOpen(false)} onSubmitOrder={(newOrder) => setCvOrders([newOrder, ...cvOrders])} />
+      <OrderCVModal isOpen={isOrderCVOpen} onClose={() => setIsOrderCVOpen(false)} onSubmitOrder={createCVOrder} />
       <AdminLoginModal isOpen={isAdminLoginOpen} onClose={() => setIsAdminLoginOpen(false)} onLoginSuccess={() => setIsAdminLoginOpen(false)} login={login} />
     </div>
   );

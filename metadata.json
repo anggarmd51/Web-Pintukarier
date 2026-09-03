@@ -1,6 +1,6 @@
 {
   "name": "Pintukarier.id",
-  "description": "Portal lowongan kerja, CV ATS, dan peluang karier terpercaya.",
+  "description": "Temukan ribuan lowongan kerja terbaru, tips karier profesional, layanan pembuatan CV ATS, dan peluang magang terbaik di Indonesia.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
