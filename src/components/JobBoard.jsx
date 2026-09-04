@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Calendar, Facebook, Instagram, Linkedin, Moon, Music2, Search, SearchX, Sun } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
@@ -13,86 +13,6 @@ import RequirementsInput, { parseRequirements, formatRequirementsToText } from '
 import { JobFeedSkeleton } from './LoadingSkeleton';
 import JobPostingSchema from './JobPostingSchema';
 import QuickShareButton from './QuickShareButton';
-
-const defaultJobs = [
-  {
-    id: 1,
-    title: 'Sales Executive',
-    company: 'PT. Nusanet',
-    location: 'Medan',
-    type: 'Full Time',
-    salary: 'Rp 6jt - 9jt',
-    category: 'Sales & Marketing',
-    status: 'Aktif',
-    featured: true,
-    urgent: false,
-    created_at: '2026-08-28T09:30:00.000Z',
-    desc: 'Mengelola ekspansi klien B2B, penawaran layanan internet bisnis, dan membangun hubungan strategis korporat.',
-    requirements: ['Pengalaman B2B min. 1 tahun', 'Memiliki relasi korporat yang luas', 'Kemampuan negosiasi dan komunikasi yang sangat baik'],
-    applyType: 'whatsapp',
-    applyTarget: '08123456789',
-    applicantsCount: 18,
-  },
-  {
-    id: 2,
-    title: 'HRIS Specialist',
-    company: 'PT. Nusawork',
-    location: 'Jakarta (Remote)',
-    type: 'Remote',
-    salary: 'Rp 8jt - 12jt',
-    category: 'HR',
-    status: 'Aktif',
-    featured: true,
-    urgent: false,
-    created_at: '2026-08-29T11:00:00.000Z',
-    desc: 'Bertanggung jawab atas implementasi sistem HRIS, pengelolaan modul kehadiran, dan dukungan klien korporat.',
-    requirements: ['Menguasai sistem HR & payroll', 'Pernah menghandle implementasi software HRIS', 'Teliti dan berorientasi pada detail'],
-    applyType: 'email',
-    applyTarget: 'hr@nusawork.com',
-    applicantsCount: 24,
-  },
-  {
-    id: 3,
-    title: 'Frontend Web Developer',
-    company: 'PT. Pintukarier Tech',
-    location: 'Remote',
-    type: 'Freelance',
-    salary: 'Rp 7jt - 11jt',
-    category: 'Tech',
-    status: 'Aktif',
-    featured: false,
-    urgent: false,
-    created_at: '2026-08-30T14:45:00.000Z',
-    desc: 'Membangun antarmuka web platform karier menggunakan React, Tailwind CSS, dan integrasi modern.',
-    requirements: ['Menguasai React.js & Tailwind CSS', 'Terbiasa dengan Git dan REST API', 'Portofolio web responsif'],
-    applyType: 'gform',
-    applyTarget: 'https://forms.gle/contoh',
-    applicantsCount: 9,
-  },
-  {
-    id: 4,
-    title: 'Content Creator & Copywriter (Closed)',
-    company: 'PT. Media Pintar Nusantara',
-    location: 'Bandung',
-    type: 'Part Time',
-    salary: 'Rp 4jt - 6jt',
-    category: 'Creative',
-    status: 'Tidak Aktif',
-    featured: false,
-    urgent: false,
-    created_at: '2026-08-25T08:15:00.000Z',
-    desc: 'Lowongan ini telah ditutup/tidak aktif dan hanya muncul di panel admin.',
-    requirements: ['Portofolio copywriting', 'Kreatif'],
-    applyType: 'email',
-    applyTarget: 'hr@mediapintar.com',
-    applicantsCount: 12,
-  },
-];
-
-const defaultCVOrders = [
-  { id: 1, name: 'Budi Santoso', whatsapp: '08123456789', package: 'Paket ATS Professional (Rp 99k)', status: 'Menunggu Review', date: '2026-06-06' },
-  { id: 2, name: 'Siti Rahma', whatsapp: '08987654321', package: 'Paket Bundle CV + LinkedIn (Rp 149k)', status: 'Selesai', date: '2026-06-05' },
-];
 
 const publicCategories = ['IT & Software', 'Sales & Marketing', 'Keuangan/Akuntansi', 'HRD/Personalia', 'Administrasi', 'Teknik/Engineering', 'Logistik/Operasional', 'Pelayanan Pelanggan'];
 
@@ -945,7 +865,7 @@ const SuperAdminDashboard = ({
   fetchCVOrders,
   updateCVStatus,
   deleteCVOrder,
-  totalViews,
+  totalViews: propTotalViews,
   loadingStats,
   isStatsLive,
   fetchStats,
@@ -962,6 +882,100 @@ const SuperAdminDashboard = ({
   const [confirmDelete, setConfirmDelete] = useState(null); // { id, name, type: 'cv' | 'job' }
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // 7 Variabel State Dinamis untuk Metrik Ringkasan Dashboard (100% dari Supabase)
+  const [totalViews, setTotalViews] = useState(0);
+  const [activeJobs, setActiveJobs] = useState(0);
+  const [pendingJobs, setPendingJobs] = useState(0);
+  const [premiumJobs, setPremiumJobs] = useState(0);
+  const [totalCompanies, setTotalCompanies] = useState(0);
+  const [totalApplicants, setTotalApplicants] = useState(0);
+  const [totalCVOrders, setTotalCVOrders] = useState(0);
+  const [loadingMetrics, setLoadingMetrics] = useState(true);
+
+  // Fetch semua metrik langsung dari tabel Supabase
+  const fetchDashboardMetrics = useCallback(async () => {
+    setLoadingMetrics(true);
+    try {
+      // 1) Total Kunjungan Web dari Supabase tabel 'site_stats'
+      const { data: statsData, error: statsError } = await supabase
+        .from('site_stats')
+        .select('total_views')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (!statsError && statsData) {
+        setTotalViews(Number(statsData.total_views) || 0);
+      } else {
+        const { data: fallbackStats } = await supabase
+          .from('site_stats')
+          .select('total_views')
+          .limit(1)
+          .maybeSingle();
+        setTotalViews(Number(fallbackStats?.total_views) || 0);
+      }
+
+      // 2, 3, 4, 5, 6) Query dari Supabase tabel 'jobs'
+      const { data: jobsData, error: jobsError } = await supabase
+        .from('jobs')
+        .select('*');
+
+      if (!jobsError && Array.isArray(jobsData)) {
+        // 2) Lowongan Aktif
+        setActiveJobs(jobsData.filter((j) => j.status === 'Aktif').length);
+
+        // 3) Menunggu Review
+        setPendingJobs(jobsData.filter((j) => j.status === 'Menunggu Persetujuan').length);
+
+        // 4) Lowongan Premium
+        setPremiumJobs(jobsData.filter((j) => (j.featured || j.is_featured) && j.status === 'Aktif').length);
+
+        // 5) Perusahaan Mitra
+        const uniqueCompanies = new Set(
+          jobsData.map((j) => (j.company || '').trim()).filter(Boolean)
+        ).size;
+        setTotalCompanies(uniqueCompanies);
+
+        // 6) Total Pelamar Masuk
+        const applicantsSum = jobsData.reduce(
+          (sum, j) => sum + (Number(j.applicantsCount) || Number(j.applicants_count) || 0),
+          0
+        );
+        setTotalApplicants(applicantsSum);
+      } else {
+        setActiveJobs(0);
+        setPendingJobs(0);
+        setPremiumJobs(0);
+        setTotalCompanies(0);
+        setTotalApplicants(0);
+      }
+
+      // 7) Total Pesanan Layanan CV dari Supabase tabel 'cv_orders'
+      const { data: cvData, error: cvError, count: cvCount } = await supabase
+        .from('cv_orders')
+        .select('*', { count: 'exact' });
+
+      if (!cvError && Array.isArray(cvData)) {
+        setTotalCVOrders(cvData.length ?? cvCount ?? 0);
+      } else {
+        setTotalCVOrders(0);
+      }
+    } catch (err) {
+      console.error('[Supabase Dashboard Metrics] Gagal mengambil data:', err);
+      setActiveJobs(0);
+      setPendingJobs(0);
+      setPremiumJobs(0);
+      setTotalCompanies(0);
+      setTotalApplicants(0);
+      setTotalCVOrders(0);
+    } finally {
+      setLoadingMetrics(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardMetrics();
+  }, [fetchDashboardMetrics]);
+
   const handleConfirmDelete = async () => {
     if (!confirmDelete) return;
     setIsDeleting(true);
@@ -971,17 +985,12 @@ const SuperAdminDashboard = ({
       } else if (confirmDelete.type === 'job') {
         await deleteJob(confirmDelete.id);
       }
+      fetchDashboardMetrics();
     } finally {
       setIsDeleting(false);
       setConfirmDelete(null);
     }
   };
-
-  const activeJobsCount = jobs.filter(j => j.status === 'Aktif').length;
-  const pendingJobsCount = jobs.filter(j => j.status === 'Menunggu Persetujuan').length;
-  const totalApplicants = jobs.reduce((sum, j) => sum + (j.applicantsCount || 0), 0);
-  const premiumJobsCount = jobs.filter(j => (j.featured || j.is_featured) && j.status === 'Aktif').length;
-  const totalCompanies = new Set(jobs.filter(Boolean).map(job => (job.company || '').trim()).filter(Boolean)).size;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
@@ -1011,19 +1020,22 @@ const SuperAdminDashboard = ({
               </div>
               <button
                 type="button"
-                onClick={() => fetchStats?.()}
-                disabled={loadingStats}
+                onClick={() => {
+                  fetchDashboardMetrics();
+                  fetchStats?.();
+                }}
+                disabled={loadingMetrics}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
-                title="Segarkan data dari Supabase site_stats"
+                title="Segarkan data langsung dari Supabase"
               >
-                <span className={loadingStats ? 'inline-block animate-spin' : ''}>🔄</span>
-                <span>{loadingStats ? 'Menyinkronkan...' : 'Segarkan Statistik'}</span>
+                <span className={loadingMetrics ? 'inline-block animate-spin' : ''}>🔄</span>
+                <span>{loadingMetrics ? 'Menyinkronkan...' : 'Segarkan Statistik'}</span>
               </button>
             </div>
 
             {/* Baris 1: Visitor Counter & Job Highlights */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-              {/* GLOBAL VISITOR COUNTER */}
+              {/* 1) GLOBAL VISITOR COUNTER (site_stats) */}
               <div className="bg-gradient-to-br from-white to-teal/5 p-4 sm:p-6 rounded-2xl shadow-xs border border-teal/30 hover:border-teal/50 transition relative overflow-hidden">
                 <div className="flex items-center justify-between">
                   <div className="text-slate-600 font-medium text-xs sm:text-sm">Total Kunjungan Web</div>
@@ -1040,7 +1052,7 @@ const SuperAdminDashboard = ({
                   </span>
                 </div>
                 <div className="text-2xl sm:text-3xl font-extrabold text-navy mt-2 flex items-baseline gap-1.5">
-                  <span>{loadingStats ? '...' : (Number(totalViews) || 0).toLocaleString('id-ID')}</span>
+                  <span>{loadingMetrics ? '...' : (totalViews || 0).toLocaleString('id-ID')}</span>
                   <span className="text-xs font-semibold text-slate-400">views</span>
                 </div>
                 <div className="text-[11px] text-slate-500 mt-2 flex items-center gap-1">
@@ -1049,42 +1061,48 @@ const SuperAdminDashboard = ({
                 </div>
               </div>
 
+              {/* 2) Lowongan Aktif (jobs) */}
               <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
                 <div className="text-slate-500 text-xs sm:text-sm">Lowongan Aktif</div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-navy mt-2">{activeJobsCount}</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-navy mt-2">{activeJobs || 0}</div>
                 <div className="text-[11px] text-slate-400 mt-2">Ditayangkan ke pencari kerja</div>
               </div>
 
+              {/* 3) Menunggu Review (jobs) */}
               <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
                 <div className="text-slate-500 text-xs sm:text-sm">Menunggu Review</div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-amber-500 mt-2">{pendingJobsCount}</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-amber-500 mt-2">{pendingJobs || 0}</div>
                 <div className="text-[11px] text-slate-400 mt-2">Menunggu persetujuan admin</div>
               </div>
 
+              {/* 4) Lowongan Premium (jobs) */}
               <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
                 <div className="text-slate-500 text-xs sm:text-sm">Lowongan Premium</div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-violet-600 mt-2">{premiumJobsCount}</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-violet-600 mt-2">{premiumJobs || 0}</div>
                 <div className="text-[11px] text-slate-400 mt-2">Disorot di posisi teratas</div>
               </div>
             </div>
 
             {/* Baris 2: Pelamar, Mitra & Layanan CV */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mt-3 sm:mt-4">
+              {/* 5) Perusahaan Mitra (jobs) */}
               <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
                 <div className="text-slate-500 text-xs sm:text-sm">Perusahaan Mitra</div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-teal mt-1">{totalCompanies}</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-teal mt-1">{totalCompanies || 0}</div>
                 <div className="text-[11px] text-slate-400 mt-1.5">Pemberi kerja terdaftar</div>
               </div>
 
+              {/* 6) Total Pelamar Masuk (jobs) */}
               <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
                 <div className="text-slate-500 text-xs sm:text-sm">Total Pelamar Masuk</div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-navy mt-1">{totalApplicants}</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-navy mt-1">{totalApplicants || 0}</div>
                 <div className="text-[11px] text-slate-400 mt-1.5">Klik lamar WhatsApp / Email</div>
               </div>
 
+              {/* 7) Total Pesanan Layanan CV (cv_orders) */}
               <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xs border border-slate-200">
                 <div className="text-slate-500 text-xs sm:text-sm">Total Pesanan Layanan CV</div>
-                <div className="text-2xl sm:text-3xl font-extrabold text-navy mt-1">{cvOrders.length}</div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-navy mt-1">{totalCVOrders || 0}</div>
                 <div className="text-[11px] text-slate-400 mt-1.5">Tersimpan di Supabase cv_orders</div>
               </div>
             </div>
@@ -1124,50 +1142,58 @@ const SuperAdminDashboard = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {jobs.map(job => {
-                      const isFeatured = job.featured || job.is_featured || false;
-                      return (
-                        <tr key={job.id} className="hover:bg-slate-50">
-                          <td className="p-3 align-middle">
-                            <div className="inline-flex items-center gap-1.5 font-bold text-navy text-xs bg-slate-100 px-2.5 py-1 rounded-md">
-                              <Calendar className="h-3.5 w-3.5 text-teal shrink-0" />
-                              <span>{formatJobDate(job.created_at || job.date)}</span>
-                            </div>
-                            {formatJobTime(job.created_at) && (
-                              <div className="text-[10px] text-slate-400 mt-0.5 pl-1 font-normal">
-                                {formatJobTime(job.created_at)}
+                    {jobs.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-slate-500 text-xs sm:text-sm">
+                          Belum ada data lowongan kerja di database Supabase.
+                        </td>
+                      </tr>
+                    ) : (
+                      jobs.map(job => {
+                        const isFeatured = job.featured || job.is_featured || false;
+                        return (
+                          <tr key={job.id} className="hover:bg-slate-50">
+                            <td className="p-3 align-middle">
+                              <div className="inline-flex items-center gap-1.5 font-bold text-navy text-xs bg-slate-100 px-2.5 py-1 rounded-md">
+                                <Calendar className="h-3.5 w-3.5 text-teal shrink-0" />
+                                <span>{formatJobDate(job.created_at || job.date)}</span>
                               </div>
-                            )}
-                          </td>
-                          <td className="p-3"><div className="font-bold text-navy whitespace-normal max-w-xs">{job.title}</div><div className="text-xs text-slate-500 whitespace-normal max-w-xs">{job.company} • {job.location}</div></td>
-                          <td className="p-3"><span className="bg-slate-100 px-2.5 py-1 rounded text-xs">{job.category}</span></td>
-                          <td className="p-3 font-extrabold text-teal">{job.applicantsCount || 0} pelamar</td>
-                          <td className="p-3">
-                            <select value={job.status} onChange={(e) => updateJobStatus(job.id, e.target.value)} className="border p-1.5 rounded text-xs bg-slate-50 font-semibold cursor-pointer">
-                              <option value="Aktif">Aktif</option>
-                              <option value="Tidak Aktif">Tidak Aktif</option>
-                              <option value="Menunggu Persetujuan">Menunggu Persetujuan</option>
-                              <option value="Ditolak">Ditolak</option>
-                            </select>
-                          </td>
-                          <td className="p-3"><button onClick={() => toggleFeatured(job.id, isFeatured)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 cursor-pointer active:scale-95 ${isFeatured ? 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300'}`}><span>{isFeatured ? '★ PREMIUM' : '☆ Standar'}</span></button></td>
-                          <td className="p-3 text-right">
-                            <div className="flex flex-wrap justify-end gap-1.5 min-w-[200px]">
-                              {job.status !== 'Aktif' && <button onClick={() => updateJobStatus(job.id, 'Aktif')} className="text-xs bg-emerald-500 text-white hover:bg-emerald-600 active:bg-emerald-700 px-2.5 py-1.5 rounded font-bold transition cursor-pointer">Setujui</button>}
-                              {job.status !== 'Ditolak' && <button onClick={() => updateJobStatus(job.id, 'Ditolak')} className="text-xs bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 px-2.5 py-1.5 rounded font-bold transition cursor-pointer">Tolak</button>}
-                              <button onClick={() => setEditingJob(job)} className="text-xs bg-slate-200 hover:bg-slate-300 active:bg-slate-400 px-2.5 py-1.5 rounded font-semibold transition cursor-pointer">Edit</button>
-                              <button
-                                type="button"
-                                onClick={() => setConfirmDelete({ id: job.id, name: job.title, type: 'job' })}
-                                className="text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 active:bg-rose-300 px-2.5 py-1.5 rounded font-semibold transition cursor-pointer"
-                              >
-                                Hapus
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                              {formatJobTime(job.created_at) && (
+                                <div className="text-[10px] text-slate-400 mt-0.5 pl-1 font-normal">
+                                  {formatJobTime(job.created_at)}
+                                </div>
+                              )}
+                            </td>
+                            <td className="p-3"><div className="font-bold text-navy whitespace-normal max-w-xs">{job.title}</div><div className="text-xs text-slate-500 whitespace-normal max-w-xs">{job.company} • {job.location}</div></td>
+                            <td className="p-3"><span className="bg-slate-100 px-2.5 py-1 rounded text-xs">{job.category}</span></td>
+                            <td className="p-3 font-extrabold text-teal">{job.applicantsCount || 0} pelamar</td>
+                            <td className="p-3">
+                              <select value={job.status} onChange={(e) => updateJobStatus(job.id, e.target.value)} className="border p-1.5 rounded text-xs bg-slate-50 font-semibold cursor-pointer">
+                                <option value="Aktif">Aktif</option>
+                                <option value="Tidak Aktif">Tidak Aktif</option>
+                                <option value="Menunggu Persetujuan">Menunggu Persetujuan</option>
+                                <option value="Ditolak">Ditolak</option>
+                              </select>
+                            </td>
+                            <td className="p-3"><button onClick={() => toggleFeatured(job.id, isFeatured)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 cursor-pointer active:scale-95 ${isFeatured ? 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300'}`}><span>{isFeatured ? '★ PREMIUM' : '☆ Standar'}</span></button></td>
+                            <td className="p-3 text-right">
+                              <div className="flex flex-wrap justify-end gap-1.5 min-w-[200px]">
+                                {job.status !== 'Aktif' && <button onClick={() => updateJobStatus(job.id, 'Aktif')} className="text-xs bg-emerald-500 text-white hover:bg-emerald-600 active:bg-emerald-700 px-2.5 py-1.5 rounded font-bold transition cursor-pointer">Setujui</button>}
+                                {job.status !== 'Ditolak' && <button onClick={() => updateJobStatus(job.id, 'Ditolak')} className="text-xs bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 px-2.5 py-1.5 rounded font-bold transition cursor-pointer">Tolak</button>}
+                                <button onClick={() => setEditingJob(job)} className="text-xs bg-slate-200 hover:bg-slate-300 active:bg-slate-400 px-2.5 py-1.5 rounded font-semibold transition cursor-pointer">Edit</button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDelete({ id: job.id, name: job.title, type: 'job' })}
+                                  className="text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 active:bg-rose-300 px-2.5 py-1.5 rounded font-semibold transition cursor-pointer"
+                                >
+                                  Hapus
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>

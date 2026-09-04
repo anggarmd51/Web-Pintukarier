@@ -2,11 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 
-export const defaultCVOrders = [
-  { id: 1, name: 'Budi Santoso', whatsapp: '08123456789', package: 'Paket ATS Professional (Rp 99k)', status: 'Menunggu Review', date: '2026-06-06' },
-  { id: 2, name: 'Siti Rahma', whatsapp: '08987654321', package: 'Paket Bundle CV + LinkedIn (Rp 149k)', status: 'Selesai', date: '2026-06-05' },
-];
-
 export default function useCVOrders() {
   const [cvOrders, setCvOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,18 +19,16 @@ export default function useCVOrders() {
       if (fetchErr) {
         console.warn('[Supabase] Gagal mengambil data cv_orders:', fetchErr.message);
         setError(fetchErr);
-        // Fallback default jika tabel belum ada atau RLS belum dibuka
-        setCvOrders(defaultCVOrders);
-      } else if (data && data.length > 0) {
+        setCvOrders([]);
+      } else if (data && Array.isArray(data)) {
         setCvOrders(data);
       } else {
-        // Jika tabel kosong di cloud
-        setCvOrders(defaultCVOrders);
+        setCvOrders([]);
       }
     } catch (err) {
       console.warn('[Supabase] Exception saat memuat cv_orders:', err.message);
       setError(err);
-      setCvOrders(defaultCVOrders);
+      setCvOrders([]);
     } finally {
       setLoading(false);
     }

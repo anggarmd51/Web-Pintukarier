@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
-const DEFAULT_FALLBACK_VIEWS = 1250;
 const SESSION_STORAGE_KEY = 'pintukarier_visit_logged_v1';
 
 export default function useSiteStats() {
-  const [totalViews, setTotalViews] = useState(DEFAULT_FALLBACK_VIEWS);
+  const [totalViews, setTotalViews] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isLive, setIsLive] = useState(false);
@@ -23,13 +22,10 @@ export default function useSiteStats() {
         .maybeSingle();
 
       if (fetchErr) {
-        // Jika belum ada akses RLS atau tabel belum di-grant
         console.warn('[Supabase] site_stats query note:', fetchErr.message);
         setError(fetchErr);
-        // Tetap gunakan fallback view yang elegan
-        setTotalViews((prev) => prev || DEFAULT_FALLBACK_VIEWS);
+        setTotalViews(0);
       } else if (data) {
-        // Ambil properti yang paling sesuai (total_views, views, count, visits, dll)
         const viewsCount =
           data.total_views ??
           data.views ??
@@ -37,15 +33,15 @@ export default function useSiteStats() {
           data.total_visits ??
           data.visits ??
           data.value ??
-          DEFAULT_FALLBACK_VIEWS;
-        setTotalViews(Number(viewsCount));
+          0;
+        setTotalViews(Number(viewsCount) || 0);
       } else {
-        setTotalViews(DEFAULT_FALLBACK_VIEWS);
+        setTotalViews(0);
       }
     } catch (err) {
       console.warn('[Supabase] site_stats exception:', err.message);
       setError(err);
-      setTotalViews(DEFAULT_FALLBACK_VIEWS);
+      setTotalViews(0);
     } finally {
       setLoading(false);
     }
@@ -79,18 +75,12 @@ export default function useSiteStats() {
 
       if (checkErr) {
         console.warn('[Supabase] site_stats record error (RLS/Permissions):', checkErr.message);
-        // Optimistic counter
-        setTotalViews((prev) => (Number(prev) || DEFAULT_FALLBACK_VIEWS) + 1);
         return;
       }
 
       if (existingRow) {
-        const currentCount =
-          existingRow.total_views ??
-          existingRow.views ??
-          existingRow.count ??
-          DEFAULT_FALLBACK_VIEWS;
-        const newCount = Number(currentCount) + 1;
+        const currentCount = Number(existingRow.total_views || 0);
+        const newCount = currentCount + 1;
 
         const updatePayload = {
           total_views: newCount,
@@ -106,13 +96,12 @@ export default function useSiteStats() {
           setTotalViews(newCount);
         } else {
           console.warn('[Supabase] Gagal update site_stats row:', updateErr.message);
-          setTotalViews((prev) => (Number(prev) || DEFAULT_FALLBACK_VIEWS) + 1);
         }
       } else {
-        // Jika tabel kosong, insert baris pertama
+        // Jika tabel kosong, insert baris pertama dengan nilai 1
         const insertPayload = {
           id: 1,
-          total_views: DEFAULT_FALLBACK_VIEWS + 1,
+          total_views: 1,
           updated_at: new Date().toISOString(),
         };
 
@@ -121,13 +110,11 @@ export default function useSiteStats() {
           .insert([insertPayload]);
 
         if (!insertErr) {
-          setTotalViews(DEFAULT_FALLBACK_VIEWS + 1);
+          setTotalViews(1);
         }
       }
     } catch (err) {
       console.warn('[Supabase] Exception saat mencatat page view:', err.message);
-      // Fallback optimis di UI
-      setTotalViews((prev) => (Number(prev) || DEFAULT_FALLBACK_VIEWS) + 1);
     }
   }, []);
 
