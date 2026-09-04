@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, Facebook, Instagram, Linkedin, Moon, Music2, Search, SearchX, Sun } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { supabase } from '../lib/supabase';
 import useAuth from '../hooks/useAuth';
 import useJobs from '../hooks/useJobs';
 import useJobActions from '../hooks/useJobActions';
@@ -1155,7 +1156,13 @@ const SuperAdminDashboard = ({
                               {job.status !== 'Aktif' && <button onClick={() => updateJobStatus(job.id, 'Aktif')} className="text-xs bg-emerald-500 text-white hover:bg-emerald-600 active:bg-emerald-700 px-2.5 py-1.5 rounded font-bold transition cursor-pointer">Setujui</button>}
                               {job.status !== 'Ditolak' && <button onClick={() => updateJobStatus(job.id, 'Ditolak')} className="text-xs bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700 px-2.5 py-1.5 rounded font-bold transition cursor-pointer">Tolak</button>}
                               <button onClick={() => setEditingJob(job)} className="text-xs bg-slate-200 hover:bg-slate-300 active:bg-slate-400 px-2.5 py-1.5 rounded font-semibold transition cursor-pointer">Edit</button>
-                              <button onClick={() => deleteJob(job.id)} className="text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 active:bg-rose-300 px-2.5 py-1.5 rounded font-semibold transition cursor-pointer">Hapus</button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDelete({ id: job.id, name: job.title, type: 'job' })}
+                                className="text-xs bg-rose-100 text-rose-700 hover:bg-rose-200 active:bg-rose-300 px-2.5 py-1.5 rounded font-semibold transition cursor-pointer"
+                              >
+                                Hapus
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -1327,10 +1334,33 @@ export default function JobBoard() {
   const [isOrderCVOpen, setIsOrderCVOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
 
-  // Catat kunjungan ke Supabase site_stats saat halaman dimuat
+  // Auto-Increment Total Kunjungan Web terhubung ke tabel Supabase 'site_stats'
   useEffect(() => {
-    recordPageView();
-  }, [recordPageView]);
+    const incrementViews = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('site_stats')
+          .select('total_views')
+          .eq('id', 1)
+          .single();
+
+        if (data && !error) {
+          await supabase
+            .from('site_stats')
+            .update({ total_views: (data.total_views || 0) + 1 })
+            .eq('id', 1);
+        } else if (!data && !error) {
+          await supabase
+            .from('site_stats')
+            .insert([{ id: 1, total_views: 1 }]);
+        }
+        if (fetchStats) fetchStats();
+      } catch (err) {
+        console.warn('[Supabase] Gagal auto-increment views:', err);
+      }
+    };
+    incrementViews();
+  }, [fetchStats]);
 
   // Filter lowongan khusus halaman publik: hanya yang berstatus 'Aktif'
   const publicJobs = useMemo(() => {

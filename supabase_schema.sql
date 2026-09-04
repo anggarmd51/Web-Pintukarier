@@ -87,8 +87,8 @@ ON CONFLICT DO NOTHING;
 
 -- 8. Buat Tabel Statistik Kunjungan Website (site_stats)
 CREATE TABLE IF NOT EXISTS public.site_stats (
-  id BIGINT PRIMARY KEY DEFAULT 1,
-  total_views BIGINT DEFAULT 1,
+  id INT PRIMARY KEY DEFAULT 1,
+  total_views INT DEFAULT 0,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -108,9 +108,9 @@ DROP POLICY IF EXISTS "Allow update site_stats" ON public.site_stats;
 CREATE POLICY "Allow update site_stats" ON public.site_stats
   FOR UPDATE USING (true) WITH CHECK (true);
 
--- Inisialisasi baris pertama jika belum ada
+-- Inisialisasi baris pertama jika belum ada (id=1, default total_views=0)
 INSERT INTO public.site_stats (id, total_views, updated_at)
-VALUES (1, 1250, NOW())
+VALUES (1, 0, NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- Function RPC untuk increment views secara aman & atomik

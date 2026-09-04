@@ -171,16 +171,16 @@ export default function useJobActions({ jobs, setJobs }) {
     try {
       const { error } = await supabase.from('jobs').delete().eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        alert('Gagal menghapus data: ' + error.message);
+        throw error;
+      }
 
       updateLocalJobs((prevJobs) => prevJobs.filter((job) => job.id !== id));
-      toast.success('Lowongan berhasil dihapus dari sistem.');
+      toast.success('Lowongan berhasil dihapus permanen dari Supabase.');
       return true;
     } catch (error) {
       console.error('Gagal menghapus lowongan:', error.message);
-      if (isRlsError(error)) {
-        toast.error('Hapus lowongan dibatasi oleh RLS Supabase. Cek policy DELETE untuk tabel jobs.');
-      }
       return false;
     }
   };

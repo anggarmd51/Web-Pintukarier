@@ -147,30 +147,22 @@ export default function useCVOrders() {
   };
 
   const deleteCVOrder = async (id) => {
-    // Reaktif instan: langsung hapus dari daftar tampilan tanpa menunggu delay
-    setCvOrders((prev) => prev.filter((order) => order.id !== id));
-
     try {
-      const { error: deleteErr } = await supabase
+      const { error } = await supabase
         .from('cv_orders')
         .delete()
         .eq('id', id);
 
-      if (deleteErr) {
-        console.error('[Supabase] Gagal delete cv_order:', deleteErr.message);
-        if (deleteErr.code === '42501' || deleteErr.message?.toLowerCase().includes('permission denied')) {
-          toast.error('Pesanan dihapus dari tampilan, namun Supabase RLS menolak DELETE pada tabel cv_orders.', { duration: 4500 });
-        } else {
-          toast.error(`Gagal menghapus permanen dari Supabase: ${deleteErr.message}`);
-        }
-        return false;
+      if (error) {
+        alert('Gagal menghapus data: ' + error.message);
+        throw error;
       }
 
+      setCvOrders((prev) => prev.filter((order) => order.id !== id));
       toast.success('Pesanan CV berhasil dihapus permanen dari Supabase.');
       return true;
     } catch (err) {
-      console.error('[Supabase] Exception saat delete pesanan:', err);
-      toast.error('Terjadi kesalahan saat menghapus pesanan di cloud.');
+      console.error('[Supabase] Gagal delete cv_order:', err.message);
       return false;
     }
   };
